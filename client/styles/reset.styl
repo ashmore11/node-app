@@ -1,0 +1,25 @@
+@import 'utils/variables'
+@import 'utils/mixins'
+
+global-reset()
+
+html
+  -webkit-text-size-adjust: 100%
+  -webkit-tap-highlight-color: rgba(0,0,0,0)
+
+  *
+    box-sizing: border-box
+    -webkit-font-smoothing: antialiased
+    -moz-osx-font-smoothing: grayscale
+    
+  body
+    background-color: $white
+    color: $black
+    
+  img
+    max-width: 100%
+    user-select: none
+    user-drag: none
+    
+  span
+    display: inline-block
