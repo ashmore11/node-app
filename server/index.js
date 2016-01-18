@@ -31,7 +31,7 @@ App.configure = function configure() {
 
 App.createServer = function createServer() {
 
-  server = http.createServer(this.app);
+  var server = http.createServer(this.app);
   
   server.listen(this.port, () => {
   
