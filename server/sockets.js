@@ -85,9 +85,18 @@ Sockets.updatePosition = function updatePosition(id, position) {
     { upsert: true },
     (err, doc) => {
 
-      if(err) console.log(err);
+      if(err) {
+
+        console.log(err);
+
+      } else {
+
+        this.socket.emit('updatePosition', id, position);
+
+      }
       
     }
+    
   );
 
 };
@@ -100,9 +109,18 @@ Sockets.updateRotation = function updateRotation(id, rotation) {
     { upsert: true },
     (err, doc) => {
 
-      if(err) console.log(err);
+      if(err) {
+
+        console.log(err);
+
+      } else {
+
+        this.socket.emit('updateRotation', id, rotation);
+
+      }
 
     }
+
   );
 
 };
@@ -122,9 +140,17 @@ Sockets.createBullet = function createBullet(params) {
     },
   });
 
-  bullet.save(err => {
+  bullet.save((err, doc) => {
 
-    if(err) console.log(err);
+    if(err) {
+
+      console.log(err);
+
+    } else {
+
+      this.socket.emit('bulletCreated', doc);
+
+    }
 
   });
 

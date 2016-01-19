@@ -137,10 +137,14 @@
 	var Scene = {
 
 	  $el: $('#scene'),
+	  renderer: new PIXI.CanvasRenderer(1500, 1000, { antialias: true }),
+	  stage: new PIXI.Container(),
 	  user: null,
 	  socket: null,
-	  renderer: new PIXI.CanvasRenderer(1500, 1000, { antialias: true }),
-	  stage: new PIXI.Container()
+	  moveUp: false,
+	  moveDown: false,
+	  moveLeft: false,
+	  moveRight: false
 
 	};
 
@@ -192,21 +196,19 @@
 
 	  event.preventDefault();
 
-	  // if(event.type === 'keydown') {
+	  if (event.type === 'keydown') {
 
-	  //   if(event.which === 87) Session.set('move:up', true);
-	  //   if(event.which === 83) Session.set('move:down', true);
-	  //   if(event.which === 65) Session.set('move:left', true);
-	  //   if(event.which === 68) Session.set('move:right', true);
+	    if (event.which === 87) this.moveUp = true;
+	    if (event.which === 83) this.moveDown = true;
+	    if (event.which === 65) this.moveLeft = true;
+	    if (event.which === 68) this.moveRight = true;
+	  } else {
 
-	  // } else {
-
-	  //   if(event.which === 87) Session.set('move:up', false);
-	  //   if(event.which === 83) Session.set('move:down', false);
-	  //   if(event.which === 65) Session.set('move:left', false);
-	  //   if(event.which === 68) Session.set('move:right', false);
-
-	  // }
+	    if (event.which === 87) this.moveUp = false;
+	    if (event.which === 83) this.moveDown = false;
+	    if (event.which === 65) this.moveLeft = false;
+	    if (event.which === 68) this.moveRight = false;
+	  }
 	};
 
 	Scene.getRotateAngle = function getRotateAngle(event) {
@@ -255,11 +257,11 @@
 	Scene.generatePlayer = function generatePlayer(params) {
 
 	  var circle = new PIXI.Graphics();
-	  circle.beginFill("0x#{params.color}", 1);
+	  circle.beginFill('0x' + params.color, 1);
 	  circle.drawCircle(0, 0, 20);
 
 	  var cannon = new PIXI.Graphics();
-	  cannon.beginFill("0x#{params.color}", 1);
+	  cannon.beginFill('0x' + params.color, 1);
 	  cannon.drawRect(-2, 5, 6, -30);
 	  cannon.type = 'cannon';
 
@@ -301,10 +303,10 @@
 	  var x = this.player.x;
 	  var y = this.player.y;
 
-	  // if(Session.get('move:left')) x -= speed;
-	  // if(Session.get('move:up')) y -= speed;
-	  // if(Session.get('move:right')) x += speed;
-	  // if(Session.get('move:down')) y += speed;
+	  if (this.moveLeft) x -= speed;
+	  if (this.moveUp) y -= speed;
+	  if (this.moveRight) x += speed;
+	  if (this.moveDown) y += speed;
 
 	  if (x < 20) x = 20;
 	  if (y < 20) y = 20;
@@ -330,7 +332,7 @@
 
 	Scene.updatePlayersRotation = function updatePlayersRotation(id, rotation) {
 
-	  player = this.getObjectFromStage(id);
+	  var player = this.getObjectFromStage(id);
 
 	  player.children.forEach(function (child) {
 
@@ -354,7 +356,7 @@
 	  var radians = angle * Math.PI / 180;
 	  var speed = 1000;
 
-	  params = {
+	  var params = {
 	    user: window.user._id,
 	    x: this.player.x,
 	    y: this.player.y,
@@ -366,17 +368,18 @@
 	  this.socket.emit('createBullet', params);
 	};
 
-	Scene.addBulletsToStage = function addBulletsToStage(id, doc) {
+	Scene.addBulletsToStage = function addBulletsToStage(doc) {
 
 	  var circle = new PIXI.Graphics();
 
-	  circle.beginFill("0x#{doc.color}", 1);
+	  circle.beginFill('0x' + doc.color, 1);
 	  circle.drawCircle(0, 0, 2);
 
-	  bullet = new PIXI.Container();
+	  var bullet = new PIXI.Container();
+
 	  bullet.x = doc.position.x;
 	  bullet.y = doc.position.y;
-	  bullet._id = id;
+	  bullet._id = doc._id;
 	  bullet.user = doc.user;
 	  bullet.type = 'bullet';
 
