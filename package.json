@@ -37,7 +37,8 @@
     "main-bower-files": "^2.11.0",
     "nib": "^1.0.4",
     "require-dir": "^0.1.0",
-    "rupture": "^0.6.1"
+    "rupture": "^0.6.1",
+    "underscore": "^1.8.3"
   },
   "babel": {
     "presets": [

@@ -2,8 +2,28 @@ extends layout
 
 block content
 
-  #home
+  #home.page
 
-    a(id='sender') Send a Message
 
-    ul(id='receiver') 
+    #scene
+
+      .leaderboard
+
+        h1 LEADERBOARD
+
+        ol
+
+      .health 
+        span.number 
+        span.text HEALTH
+
+      form.username
+
+        .enter-name
+          h1 WELCOME!
+          span PLEASE CREATE A USERNAME BELOW
+
+        input(type="text" name="text" maxlength="12")
+
+        button.save-name.disabled(type="submit") SAVE
+

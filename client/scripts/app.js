@@ -1,8 +1,10 @@
+import Scene from './scene';
+
 var App = {
 
   socket: null,
-  $sender: $('#sender'),
-  $receiver: $('#receiver'),
+  $input: $('input'),
+  $form: $('form'),
 
 };
 
@@ -10,7 +12,13 @@ App.init = function init() {
 
   this.socket = io.connect('http://localhost:3000');
 
-  this.socket.on('connect', () => console.log('socket connected'));
+  this.socket.on('connect', () => {
+
+    Scene.setup(this.socket);
+  
+    console.log('socket connected');
+
+  });
 
   this.bind();
 
@@ -18,21 +26,57 @@ App.init = function init() {
 
 App.bind = function bind() {
 
-  this.$sender.on('click', this.sendMessage.bind(this));
-
-  this.socket.on('server_message', this.messageRecieved.bind(this));
+  this.$input.on('keyup', this.checkInput.bind(this));
+  this.$form.on('submit', this.submitForm.bind(this));
 
 };
 
-App.sendMessage = function sendMessage() {
+App.checkInput = function checkInput() {
   
-  this.socket.emit('message', 'Message Sent on ' + new Date());     
+  if($('input').val().length >= 3) {
+
+    $('button').removeClass('disabled');
+
+  } else {
+
+    $('button').addClass('disabled');
+
+  }
   
 };
 
-App.messageRecieved = function messageRecieved(data) {
+App.submitForm = function submitForm(event) {
 
-  this.$receiver.append('<li>' + data + '</li>');
+  event.preventDefault();
+
+  const name  = event.target.text.value.toUpperCase();
+  const color = randomColor({ luminosity: 'light' }).split('#')[1];
+
+  if($('button').hasClass('disabled')) {
+
+    alert('Your username must be at least 3 characters...');
+
+    return;
+
+  }
+
+  this.socket.emit('createPlayer', name, color, (err, doc) => {
+
+    if(err) {
+      
+      alert('Username already exists, try again...');
+
+    } else {
+
+      window.user = doc;
+
+      TweenMax.to(this.$form, 0.25, { autoAlpha: 0 });
+
+      Scene.init(this.socket);
+
+    }
+
+  });
 
 };
 
