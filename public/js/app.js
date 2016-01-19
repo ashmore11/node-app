@@ -127,13 +127,20 @@
 
 /***/ },
 /* 1 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
+
+	var _stats = __webpack_require__(2);
+
+	var _stats2 = _interopRequireDefault(_stats);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 	var Scene = {
 
 	  $el: $('#scene'),
@@ -161,7 +168,7 @@
 	  $(document).on('mousemove', this.getRotateAngle.bind(this));
 	  $(document).on('mousedown', this.createBullet.bind(this));
 
-	  this.createStats();
+	  this.stats = new _stats2.default(this.$el, 0, 0, 0);
 
 	  this.animate();
 
@@ -176,18 +183,6 @@
 	  this.socket.on('updateRotation', this.updatePlayersRotation.bind(this));
 	  this.socket.on('bulletCreated', this.addBulletsToStage.bind(this));
 	  this.socket.on('bulletDestroyed', this.removeBulletsFromStage.bind(this));
-	};
-
-	Scene.createStats = function createStats() {
-
-	  this.stats = new Stats();
-	  this.stats.setMode(0);
-
-	  this.stats.domElement.style.position = 'absolute';
-	  this.stats.domElement.style.left = '0px';
-	  this.stats.domElement.style.top = '0px';
-
-	  this.$el.append(this.stats.domElement);
 	};
 
 	Scene.getKeyEvents = function getKeyEvents(event) {
@@ -528,6 +523,52 @@
 	};
 
 	exports.default = Scene;
+
+/***/ },
+/* 2 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	var stats = function stats(el, mode, top, left) {
+
+	  this.stats = new Stats();
+
+	  this.setMode(0 || mode);
+
+	  this.setPosition(0 || top, 0 || left);
+
+	  var $el = el || $(document);
+
+	  $el.append(this.stats.domElement);
+	};
+
+	stats.prototype.setMode = function setMode(mode) {
+
+	  this.stats.setMode(mode);
+	};
+
+	stats.prototype.setPosition = function setPosition(top, left) {
+
+	  this.stats.domElement.style.position = 'absolute';
+	  this.stats.domElement.style.left = left + 'px';
+	  this.stats.domElement.style.top = top + 'px';
+	};
+
+	stats.prototype.begin = function begin() {
+
+	  this.stats.begin();
+	};
+
+	stats.prototype.end = function end() {
+
+	  this.stats.end();
+	};
+
+	exports.default = stats;
 
 /***/ }
 /******/ ]);

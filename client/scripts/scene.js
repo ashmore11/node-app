@@ -1,3 +1,5 @@
+import stats from 'app/utils/stats';
+
 const Scene = {
 
   $el: $('#scene'),
@@ -26,7 +28,7 @@ Scene.init = function init() {
   $(document).on('mousemove', this.getRotateAngle.bind(this));
   $(document).on('mousedown', this.createBullet.bind(this));
 
-  this.createStats();
+  this.stats = new stats(this.$el, 0, 0, 0);
 
   this.animate();
   
@@ -42,19 +44,6 @@ Scene.bind = function bind() {
   this.socket.on('updateRotation',  this.updatePlayersRotation.bind(this));
   this.socket.on('bulletCreated',   this.addBulletsToStage.bind(this));
   this.socket.on('bulletDestroyed', this.removeBulletsFromStage.bind(this));
-
-};
-
-Scene.createStats = function createStats() {
-
-  this.stats = new Stats();
-  this.stats.setMode(0);
-
-  this.stats.domElement.style.position = 'absolute';
-  this.stats.domElement.style.left     = '0px';
-  this.stats.domElement.style.top      = '0px';
-
-  this.$el.append(this.stats.domElement);
 
 };
 
@@ -256,7 +245,7 @@ Scene.addBulletsToStage = function addBulletsToStage(doc) {
   circle.drawCircle(0, 0, 2);
 
   const bullet = new PIXI.Container();
-  
+
   bullet.x    = doc.position.x;
   bullet.y    = doc.position.y;
   bullet._id  = doc._id;

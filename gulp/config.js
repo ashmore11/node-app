@@ -68,7 +68,7 @@ export default {
 		resolve: {
 			extensions: ['', '.js'],
 			alias: {
-				app: process.env.PWD + '/client/scripts',
+				app: process.env.PWD + '/client/scripts/',
 			}
 		},
 	},

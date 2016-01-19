@@ -96,7 +96,7 @@ Sockets.updatePosition = function updatePosition(id, position) {
       }
       
     }
-    
+
   );
 
 };
@@ -166,7 +166,12 @@ Sockets.increaseHealth = function increaseHealth(id) {
 
       if(err) console.log(err);
       
+    } else {
+
+      this.socket.emit('increaseHealth', id);
+
     }
+
   );
 
 };
