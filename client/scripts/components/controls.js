@@ -1,25 +1,31 @@
-export default function Controls(el) {
+const Controls = {
 
-  this.$el    = el;
-  this.up     = false;
-  this.down   = false;
-  this.left   = false;
-  this.right  = false;
-  this.x      = 0;
-  this.y      = 0;
+  $el   : null,
+  up    : false,
+  down  : false,
+  left  : false,
+  right : false,
+  x     : 0,
+  y     : 0,
+
+};
+
+Controls.init = function init(el) {
+
+  this.$el = el;
 
   this.bind();
 
 };
 
-Controls.prototype.bind = function bind() {
+Controls.bind = function bind() {
 
   $(document).on('keydown keyup', this.getKeyEvents.bind(this));
   $(document).on('mousemove', this.getPointerPos.bind(this));
 
 };
 
-Controls.prototype.getKeyEvents = function getKeyEvents(event) {
+Controls.getKeyEvents = function getKeyEvents(event) {
 
   event.preventDefault();
 
@@ -41,14 +47,14 @@ Controls.prototype.getKeyEvents = function getKeyEvents(event) {
 
 };
 
-Controls.prototype.getPointerPos = function getPointerPos(event) {
+Controls.getPointerPos = function getPointerPos(event) {
 
   this.x = event.pageX;
   this.y = event.pageY;
 
 };
 
-Controls.prototype.getRotation = function getRotation(px, py) {
+Controls.getRotation = function getRotation(px, py) {
 
   const pageX = this.x - this.$el.offset().left;
   const pageY = this.y - this.$el.offset().top;
@@ -63,7 +69,7 @@ Controls.prototype.getRotation = function getRotation(px, py) {
 
 };
 
-Controls.prototype.fire = function fire(x, y, player) {
+Controls.fire = function fire(x, y, player) {
 
   const px = player.x;
   const py = player.y;
@@ -87,3 +93,5 @@ Controls.prototype.fire = function fire(x, y, player) {
   return params;
 
 };
+
+export default Controls;

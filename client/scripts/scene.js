@@ -5,20 +5,26 @@ import Bullet     from 'app/components/bullet';
 import Position   from 'app/components/position';
 import Collisions from 'app/components/collisions';
 
-export default function Scene(socket) {
+const Scene = {
 
-  this.$el      = $('#scene'),
-  this.renderer = new PIXI.CanvasRenderer(1500, 1000, { antialias: true }),
-  this.stage    = new PIXI.Container(),
-  this.socket   = socket;
+  $el      : $('#scene'),
+  renderer : new PIXI.CanvasRenderer(1500, 1000, { antialias: true }),
+  stage    : new PIXI.Container(),
+  socket   : null,
+
+};
+
+Scene.init = function init(socket) {
+
+  this.socket = socket;
 
   this.$el.append(this.renderer.view);
 
 };
 
-Scene.prototype.init = function init() {
+Scene.start = function start() {
 
-  this.controls = new Controls(this.$el);
+  Controls.init(this.$el);
 
   Stats.init(this.$el, 0, 0, 0);
 
@@ -28,7 +34,7 @@ Scene.prototype.init = function init() {
 
 };
 
-Scene.prototype.bind = function bind() {
+Scene.bind = function bind() {
 
   $(document).on('mousedown', this.createBullet.bind(this));
 
@@ -41,7 +47,7 @@ Scene.prototype.bind = function bind() {
 
 };
 
-Scene.prototype.addPlayers = function addPlayers(arr) {
+Scene.addPlayers = function addPlayers(arr) {
 
   arr.forEach(obj => {
 
@@ -60,21 +66,23 @@ Scene.prototype.addPlayers = function addPlayers(arr) {
 
 };
 
-Scene.prototype.removePlayers = function removePlayers(id) {
+Scene.removePlayers = function removePlayers(id) {
 
   Player.remove(id, stage);
 
 };
 
-Scene.prototype.updatePosition = function updatePosition() {
+Scene.updatePosition = function updatePosition() {
 
-  const pos = Position(this.player, this.controls, this.renderer);
+  const pos = Position(this.player, Controls, this.renderer);
 
   this.socket.emit('updatePosition', window.User._id, pos);
 
 };
 
-Scene.prototype.updateAllPositions = function updateAllPositions(id, pos) {
+Scene.updateAllPositions = function updateAllPositions(id, pos) {
+
+  console.log(id);
 
   const player = this.getObjectFromStage(id);
 
@@ -83,7 +91,7 @@ Scene.prototype.updateAllPositions = function updateAllPositions(id, pos) {
 
 };
 
-Scene.prototype.updateRotation = function updateRotation(id, rotation) {
+Scene.updateRotation = function updateRotation(id, rotation) {
 
   const player = this.getObjectFromStage(id);
 
@@ -99,17 +107,17 @@ Scene.prototype.updateRotation = function updateRotation(id, rotation) {
 
 };
 
-Scene.prototype.createBullet = function createBullet(event) {
+Scene.createBullet = function createBullet(event) {
 
   event.preventDefault();
 
-  const params = this.controls.fire(event.pageX, event.pageY, this.player);
+  const params = Controls.fire(event.pageX, event.pageY, this.player);
 
   this.socket.emit('createBullet', params);
 
 };
 
-Scene.prototype.addBullets = function addBullets(doc) {
+Scene.addBullets = function addBullets(doc) {
 
   const newBullet = Bullet.create(doc, bullet => {
 
@@ -119,13 +127,13 @@ Scene.prototype.addBullets = function addBullets(doc) {
 
 };
 
-Scene.prototype.removeBullets = function removeBullets(id) {
+Scene.removeBullets = function removeBullets(id) {
 
-  Bullet.remove(id, stage);
+  Bullet.remove(id, this.stage);
 
 };
 
-Scene.prototype.updateBullets = function updateBullets() {
+Scene.updateBullets = function updateBullets() {
 
   this.stage.children.forEach(object => {
 
@@ -140,7 +148,7 @@ Scene.prototype.updateBullets = function updateBullets() {
 
 };
 
-Scene.prototype.updateHealth = function updateHealth() {
+Scene.updateHealth = function updateHealth() {
 
   this.stage.children.forEach(object => {
 
@@ -165,7 +173,7 @@ Scene.prototype.updateHealth = function updateHealth() {
 
 };
 
-Scene.prototype.removeDeadPlayers = function removeDeadPlayers() {
+Scene.removeDeadPlayers = function removeDeadPlayers() {
 
   if(window.User.health <= 0) {
 
@@ -175,7 +183,7 @@ Scene.prototype.removeDeadPlayers = function removeDeadPlayers() {
 
 };
 
-Scene.prototype.getObjectFromStage = function getObjectFromStage(id) {
+Scene.getObjectFromStage = function getObjectFromStage(id) {
 
   return this.stage.children.filter(child => {
 
@@ -185,13 +193,13 @@ Scene.prototype.getObjectFromStage = function getObjectFromStage(id) {
 
 };
 
-Scene.prototype.update = function update() {
+Scene.update = function update() {
 
   this.player = this.getObjectFromStage(window.User._id);
 
   if(!this.player) return;
 
-  const rotation = this.controls.getRotation(this.player.x, this.player.y);
+  const rotation = Controls.getRotation(this.player.x, this.player.y);
 
   this.socket.emit('updateRotation', window.User._id, rotation);
 
@@ -207,7 +215,7 @@ Scene.prototype.update = function update() {
 
 };
 
-Scene.prototype.animate = function animate() {
+Scene.animate = function animate() {
 
   requestAnimationFrame(this.animate.bind(this));
 
@@ -220,3 +228,5 @@ Scene.prototype.animate = function animate() {
   Stats.end();
 
 };
+
+export default Scene;

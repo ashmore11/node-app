@@ -221,13 +221,21 @@ Sockets.removePlayer = function removePlayer(id) {
 
   Player.find({ _id: id }).remove(err => {
 
-    if(err) console.log(err);
+    if(err) {
+
+      console.log(err);
+
+    } else {
+
+      this.socket.emit('playerDestroyed', id);
+
+    }
 
   })
 
 };
 
-Sockets.disconnected = function disconnected(data, test) {
+Sockets.disconnected = function disconnected() {
 
   console.log(Chalk.red('Client Disconnected'));
 

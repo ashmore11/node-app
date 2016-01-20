@@ -1,6 +1,6 @@
 import Scene from './scene';
 
-var App = {
+const App = {
 
   socket: null,
   $input: $('input'),
@@ -14,11 +14,11 @@ App.init = function init() {
 
   this.socket.on('connect', () => {
 
-    this.scene = new Scene(this.socket);
-  
-    console.log('socket connected');
+    // console.log('socket connected');
 
   });
+
+  Scene.init(this.socket);
 
   this.bind();
 
@@ -32,8 +32,8 @@ App.bind = function bind() {
 };
 
 App.checkInput = function checkInput() {
-  
-  if($('input').val().length >= 3) {
+
+  if ($('input').val().length >= 3) {
 
     $('button').removeClass('disabled');
 
@@ -42,7 +42,7 @@ App.checkInput = function checkInput() {
     $('button').addClass('disabled');
 
   }
-  
+
 };
 
 App.submitForm = function submitForm(event) {
@@ -52,7 +52,7 @@ App.submitForm = function submitForm(event) {
   const name  = event.target.text.value.toUpperCase();
   const color = randomColor({ luminosity: 'light' }).split('#')[1];
 
-  if($('button').hasClass('disabled')) {
+  if ($('button').hasClass('disabled')) {
 
     alert('Your username must be at least 3 characters...');
 
@@ -62,8 +62,8 @@ App.submitForm = function submitForm(event) {
 
   this.socket.emit('createPlayer', name, color, (err, doc) => {
 
-    if(err) {
-      
+    if (err) {
+
       alert('Username already exists, try again...');
 
     } else {
@@ -72,7 +72,7 @@ App.submitForm = function submitForm(event) {
 
       TweenMax.to(this.$form, 0.25, { autoAlpha: 0 });
 
-      this.scene.init();
+      Scene.start();
 
     }
 

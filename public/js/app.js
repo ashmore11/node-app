@@ -61,16 +61,16 @@
 	};
 
 	App.init = function init() {
-	  var _this = this;
 
 	  this.socket = io.connect('http://localhost:3000');
 
 	  this.socket.on('connect', function () {
 
-	    _this.scene = new _scene2.default(_this.socket);
+	    // console.log('socket connected');
 
-	    console.log('socket connected');
 	  });
+
+	  _scene2.default.init(this.socket);
 
 	  this.bind();
 	};
@@ -93,7 +93,7 @@
 	};
 
 	App.submitForm = function submitForm(event) {
-	  var _this2 = this;
+	  var _this = this;
 
 	  event.preventDefault();
 
@@ -116,9 +116,9 @@
 
 	      window.User = doc;
 
-	      TweenMax.to(_this2.$form, 0.25, { autoAlpha: 0 });
+	      TweenMax.to(_this.$form, 0.25, { autoAlpha: 0 });
 
-	      _this2.scene.init();
+	      _scene2.default.start();
 	    }
 	  });
 	};
@@ -134,7 +134,6 @@
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
-	exports.default = Scene;
 
 	var _stats = __webpack_require__(2);
 
@@ -162,16 +161,25 @@
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	function Scene(socket) {
+	var Scene = {
 
-	  this.$el = $('#scene'), this.renderer = new PIXI.CanvasRenderer(1500, 1000, { antialias: true }), this.stage = new PIXI.Container(), this.socket = socket;
+	  $el: $('#scene'),
+	  renderer: new PIXI.CanvasRenderer(1500, 1000, { antialias: true }),
+	  stage: new PIXI.Container(),
+	  socket: null
+
+	};
+
+	Scene.init = function init(socket) {
+
+	  this.socket = socket;
 
 	  this.$el.append(this.renderer.view);
 	};
 
-	Scene.prototype.init = function init() {
+	Scene.start = function start() {
 
-	  this.controls = new _controls2.default(this.$el);
+	  _controls2.default.init(this.$el);
 
 	  _stats2.default.init(this.$el, 0, 0, 0);
 
@@ -180,7 +188,7 @@
 	  this.bind();
 	};
 
-	Scene.prototype.bind = function bind() {
+	Scene.bind = function bind() {
 
 	  $(document).on('mousedown', this.createBullet.bind(this));
 
@@ -192,7 +200,7 @@
 	  this.socket.on('bulletDestroyed', this.removeBullets.bind(this));
 	};
 
-	Scene.prototype.addPlayers = function addPlayers(arr) {
+	Scene.addPlayers = function addPlayers(arr) {
 	  var _this = this;
 
 	  arr.forEach(function (obj) {
@@ -209,19 +217,21 @@
 	  });
 	};
 
-	Scene.prototype.removePlayers = function removePlayers(id) {
+	Scene.removePlayers = function removePlayers(id) {
 
 	  _player2.default.remove(id, stage);
 	};
 
-	Scene.prototype.updatePosition = function updatePosition() {
+	Scene.updatePosition = function updatePosition() {
 
-	  var pos = (0, _position2.default)(this.player, this.controls, this.renderer);
+	  var pos = (0, _position2.default)(this.player, _controls2.default, this.renderer);
 
 	  this.socket.emit('updatePosition', window.User._id, pos);
 	};
 
-	Scene.prototype.updateAllPositions = function updateAllPositions(id, pos) {
+	Scene.updateAllPositions = function updateAllPositions(id, pos) {
+
+	  console.log(id);
 
 	  var player = this.getObjectFromStage(id);
 
@@ -229,7 +239,7 @@
 	  player.y = pos.y;
 	};
 
-	Scene.prototype.updateRotation = function updateRotation(id, rotation) {
+	Scene.updateRotation = function updateRotation(id, rotation) {
 
 	  var player = this.getObjectFromStage(id);
 
@@ -242,16 +252,16 @@
 	  });
 	};
 
-	Scene.prototype.createBullet = function createBullet(event) {
+	Scene.createBullet = function createBullet(event) {
 
 	  event.preventDefault();
 
-	  var params = this.controls.fire(event.pageX, event.pageY, this.player);
+	  var params = _controls2.default.fire(event.pageX, event.pageY, this.player);
 
 	  this.socket.emit('createBullet', params);
 	};
 
-	Scene.prototype.addBullets = function addBullets(doc) {
+	Scene.addBullets = function addBullets(doc) {
 	  var _this2 = this;
 
 	  var newBullet = _bullet2.default.create(doc, function (bullet) {
@@ -260,12 +270,12 @@
 	  });
 	};
 
-	Scene.prototype.removeBullets = function removeBullets(id) {
+	Scene.removeBullets = function removeBullets(id) {
 
-	  _bullet2.default.remove(id, stage);
+	  _bullet2.default.remove(id, this.stage);
 	};
 
-	Scene.prototype.updateBullets = function updateBullets() {
+	Scene.updateBullets = function updateBullets() {
 
 	  this.stage.children.forEach(function (object) {
 
@@ -277,7 +287,7 @@
 	  });
 	};
 
-	Scene.prototype.updateHealth = function updateHealth() {
+	Scene.updateHealth = function updateHealth() {
 
 	  this.stage.children.forEach(function (object) {
 
@@ -297,7 +307,7 @@
 	  });
 	};
 
-	Scene.prototype.removeDeadPlayers = function removeDeadPlayers() {
+	Scene.removeDeadPlayers = function removeDeadPlayers() {
 
 	  if (window.User.health <= 0) {
 
@@ -305,7 +315,7 @@
 	  }
 	};
 
-	Scene.prototype.getObjectFromStage = function getObjectFromStage(id) {
+	Scene.getObjectFromStage = function getObjectFromStage(id) {
 
 	  return this.stage.children.filter(function (child) {
 
@@ -313,13 +323,13 @@
 	  })[0];
 	};
 
-	Scene.prototype.update = function update() {
+	Scene.update = function update() {
 
 	  this.player = this.getObjectFromStage(window.User._id);
 
 	  if (!this.player) return;
 
-	  var rotation = this.controls.getRotation(this.player.x, this.player.y);
+	  var rotation = _controls2.default.getRotation(this.player.x, this.player.y);
 
 	  this.socket.emit('updateRotation', window.User._id, rotation);
 
@@ -334,7 +344,7 @@
 	  this.removeDeadPlayers();
 	};
 
-	Scene.prototype.animate = function animate() {
+	Scene.animate = function animate() {
 
 	  requestAnimationFrame(this.animate.bind(this));
 
@@ -346,6 +356,8 @@
 
 	  _stats2.default.end();
 	};
+
+	exports.default = Scene;
 
 /***/ },
 /* 2 */
@@ -406,27 +418,32 @@
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
-	exports.default = Controls;
-	function Controls(el) {
+	var Controls = {
+
+	  $el: null,
+	  up: false,
+	  down: false,
+	  left: false,
+	  right: false,
+	  x: 0,
+	  y: 0
+
+	};
+
+	Controls.init = function init(el) {
 
 	  this.$el = el;
-	  this.up = false;
-	  this.down = false;
-	  this.left = false;
-	  this.right = false;
-	  this.x = 0;
-	  this.y = 0;
 
 	  this.bind();
 	};
 
-	Controls.prototype.bind = function bind() {
+	Controls.bind = function bind() {
 
 	  $(document).on('keydown keyup', this.getKeyEvents.bind(this));
 	  $(document).on('mousemove', this.getPointerPos.bind(this));
 	};
 
-	Controls.prototype.getKeyEvents = function getKeyEvents(event) {
+	Controls.getKeyEvents = function getKeyEvents(event) {
 
 	  event.preventDefault();
 
@@ -445,13 +462,13 @@
 	  }
 	};
 
-	Controls.prototype.getPointerPos = function getPointerPos(event) {
+	Controls.getPointerPos = function getPointerPos(event) {
 
 	  this.x = event.pageX;
 	  this.y = event.pageY;
 	};
 
-	Controls.prototype.getRotation = function getRotation(px, py) {
+	Controls.getRotation = function getRotation(px, py) {
 
 	  var pageX = this.x - this.$el.offset().left;
 	  var pageY = this.y - this.$el.offset().top;
@@ -465,7 +482,7 @@
 	  return rotation;
 	};
 
-	Controls.prototype.fire = function fire(x, y, player) {
+	Controls.fire = function fire(x, y, player) {
 
 	  var px = player.x;
 	  var py = player.y;
@@ -488,6 +505,8 @@
 
 	  return params;
 	};
+
+	exports.default = Controls;
 
 /***/ },
 /* 4 */
