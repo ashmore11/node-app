@@ -29,19 +29,19 @@ Controls.getKeyEvents = function getKeyEvents(event) {
 
   event.preventDefault();
 
-  if(event.type === 'keydown') {
+  if (event.type === 'keydown') {
 
-    if(event.which === 87) this.up = true;
-    if(event.which === 83) this.down = true;
-    if(event.which === 65) this.left = true;
-    if(event.which === 68) this.right = true;
+    if (event.which === 87) this.up = true;
+    if (event.which === 83) this.down = true;
+    if (event.which === 65) this.left = true;
+    if (event.which === 68) this.right = true;
 
   } else {
 
-    if(event.which === 87) this.up = false;
-    if(event.which === 83) this.down = false;
-    if(event.which === 65) this.left = false;
-    if(event.which === 68) this.right = false;
+    if (event.which === 87) this.up = false;
+    if (event.which === 83) this.down = false;
+    if (event.which === 65) this.left = false;
+    if (event.which === 68) this.right = false;
 
   }
 

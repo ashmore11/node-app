@@ -53,7 +53,7 @@ Bullet.remove = function remove(id, stage) {
 
   stage.children.forEach(child => {
 
-    if(child._id === id && child.type === 'bullet') {
+    if (child._id === id && child.type === 'bullet') {
 
       child.removeChildren();
       stage.removeChild(child);

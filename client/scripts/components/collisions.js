@@ -14,7 +14,7 @@ Collisions.run = function run(player, stage, renderer, socket) {
 
   stage.children.forEach(object => {
 
-    if(object.type === 'bullet') {
+    if (object.type === 'bullet') {
 
       const params = {
         object: object,
@@ -24,7 +24,7 @@ Collisions.run = function run(player, stage, renderer, socket) {
         by: object.y,
       };
 
-      if(object.user !== window.User._id) {
+      if (object.user !== window.User._id) {
 
         this.checkPlayerCollision(params);
 
@@ -42,10 +42,10 @@ Collisions.run = function run(player, stage, renderer, socket) {
 
 Collisions.checkPlayerCollision = function checkPlayerCollision(params) {
   
-  if(params.bx > params.px - 20 && 
-     params.bx < params.px + 20 && 
-     params.by > params.py - 20 && 
-     params.by < params.py + 20) {
+  if (params.bx > params.px - 20 && 
+      params.bx < params.px + 20 && 
+      params.by > params.py - 20 && 
+      params.by < params.py + 20) {
 
       this.playerCollision(params.object);
 
@@ -55,10 +55,10 @@ Collisions.checkPlayerCollision = function checkPlayerCollision(params) {
 
 Collisions.checkWallCollision = function checkWallCollision(params) {
 
-  if(params.bx > this.renderer.width  || 
-     params.by > this.renderer.height || 
-     params.bx < 0 || 
-     params.by < 0) {
+  if (params.bx > this.renderer.width  || 
+      params.by > this.renderer.height || 
+      params.bx < 0 || 
+      params.by < 0) {
 
       this.wallCollision(params.object);
 

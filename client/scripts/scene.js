@@ -97,7 +97,7 @@ Scene.updateRotation = function updateRotation(id, rotation) {
 
   player.children.forEach((child) => {
 
-    if(child.type === 'cannon') {
+    if (child.type === 'cannon') {
 
       child.rotation = rotation;
 
@@ -137,7 +137,7 @@ Scene.updateBullets = function updateBullets() {
 
   this.stage.children.forEach(object => {
 
-    if(object.type === 'bullet') {
+    if (object.type === 'bullet') {
 
       object.x = object.x + object.direction.y;
       object.y = object.y - object.direction.x;
@@ -152,11 +152,11 @@ Scene.updateHealth = function updateHealth() {
 
   this.stage.children.forEach(object => {
 
-    if(object.type === 'player') {
+    if (object.type === 'player') {
 
       object.children.forEach(child => {
 
-        if(child.type === 'health') {
+        if (child.type === 'health') {
 
           child.text = child.health;
 
@@ -175,7 +175,7 @@ Scene.updateHealth = function updateHealth() {
 
 Scene.removeDeadPlayers = function removeDeadPlayers() {
 
-  if(window.User.health <= 0) {
+  if (window.User.health <= 0) {
 
     this.socket.emit('removePlayer', window.User._id);
 
@@ -187,7 +187,7 @@ Scene.getObjectFromStage = function getObjectFromStage(id) {
 
   return this.stage.children.filter(child => {
 
-    if(child._id === id) return child;
+    if (child._id === id) return child;
 
   })[0];
 
@@ -197,7 +197,7 @@ Scene.update = function update() {
 
   this.player = this.getObjectFromStage(window.User._id);
 
-  if(!this.player) return;
+  if (!this.player) return;
 
   const rotation = Controls.getRotation(this.player.x, this.player.y);
 

@@ -61,7 +61,7 @@ Sockets.createPlayer = function createPlayer(username, color, callback) {
 
   player.save((err, doc) => {
 
-    if(err) {
+    if (err) {
 
       callback(err, null);
 
@@ -89,7 +89,7 @@ Sockets.updatePosition = function updatePosition(id, position) {
     { upsert: true },
     (err, doc) => {
 
-      if(err) {
+      if (err) {
 
         console.log(err);
 
@@ -113,7 +113,7 @@ Sockets.updateRotation = function updateRotation(id, rotation) {
     { upsert: true },
     (err, doc) => {
 
-      if(err) {
+      if (err) {
 
         console.log(err);
 
@@ -146,7 +146,7 @@ Sockets.createBullet = function createBullet(params) {
 
   bullet.save((err, doc) => {
 
-    if(err) {
+    if (err) {
 
       console.log(err);
 
@@ -168,7 +168,7 @@ Sockets.increaseHealth = function increaseHealth(id) {
     { upsert: true },
     (err, doc) => {
 
-      if(err) {
+      if (err) {
 
         console.log(err);
       
@@ -192,7 +192,7 @@ Sockets.decreaseHealth = function decreaseHealth(id) {
     { upsert: true },
     (err, doc) => {
 
-      if(err) console.log(err);
+      if (err) console.log(err);
       
     }
   );
@@ -203,7 +203,7 @@ Sockets.removeBullet = function removeBullet(id) {
 
   Bullet.find({ _id: id }).remove(err => {
 
-    if(err) {
+    if (err) {
 
       console.log(err);
 
@@ -221,7 +221,7 @@ Sockets.removePlayer = function removePlayer(id) {
 
   Player.find({ _id: id }).remove(err => {
 
-    if(err) {
+    if (err) {
 
       console.log(err);
 

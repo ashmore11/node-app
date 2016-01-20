@@ -102,7 +102,7 @@ Player.remove = function remove(id, stage) {
 
   stage.children.forEach(child => {
 
-    if(child._id === id && child.type === 'player') {
+    if (child._id === id && child.type === 'player') {
 
       child.removeChildren();
       stage.removeChild(child);
