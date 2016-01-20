@@ -21,7 +21,7 @@ Sockets.init = function init(app, server) {
 
 Sockets.connected = function connected(socket) {
 
-  console.log(Chalk.green('Client Connected:', socket.id));
+  console.log(Chalk.green('Client Connected'));
 
   this.socket = socket;
 
@@ -69,7 +69,11 @@ Sockets.createPlayer = function createPlayer(username, color, callback) {
 
       callback(null, doc);
 
-      this.socket.emit('playerCreated', doc);
+      Player.find({}, (err, players) => {
+
+        this.socket.emit('addPlayers', players);
+
+      });
 
     }
 
@@ -164,11 +168,15 @@ Sockets.increaseHealth = function increaseHealth(id) {
     { upsert: true },
     (err, doc) => {
 
-      if(err) console.log(err);
-      
-    } else {
+      if(err) {
 
-      this.socket.emit('increaseHealth', id);
+        console.log(err);
+      
+      } else {
+
+        this.socket.emit('increaseHealth', id);
+
+      }
 
     }
 
@@ -195,7 +203,15 @@ Sockets.removeBullet = function removeBullet(id) {
 
   Bullet.find({ _id: id }).remove(err => {
 
-    if(err) console.log(err);
+    if(err) {
+
+      console.log(err);
+
+    } else {
+
+      this.socket.emit('bulletDestroyed', id);
+
+    }
 
   })
 
@@ -213,7 +229,7 @@ Sockets.removePlayer = function removePlayer(id) {
 
 Sockets.disconnected = function disconnected(data, test) {
 
-  console.log(Chalk.red('Client Disconnected.'));
+  console.log(Chalk.red('Client Disconnected'));
 
 };
 

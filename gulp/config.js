@@ -40,6 +40,7 @@ export default {
 		ignore: [
 			'gulp',
 			'public',
+			'client',
 			'node_modules',
 			'bower_components',
 			'package.json',

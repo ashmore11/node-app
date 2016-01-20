@@ -67,7 +67,7 @@
 
 	  this.socket.on('connect', function () {
 
-	    _scene2.default.setup(_this.socket);
+	    _this.scene = new _scene2.default(_this.socket);
 
 	    console.log('socket connected');
 	  });
@@ -114,11 +114,11 @@
 	      alert('Username already exists, try again...');
 	    } else {
 
-	      window.user = doc;
+	      window.User = doc;
 
 	      TweenMax.to(_this2.$form, 0.25, { autoAlpha: 0 });
 
-	      _scene2.default.init(_this2.socket);
+	      _this2.scene.init();
 	    }
 	  });
 	};
@@ -134,190 +134,94 @@
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
+	exports.default = Scene;
 
 	var _stats = __webpack_require__(2);
 
 	var _stats2 = _interopRequireDefault(_stats);
 
+	var _controls = __webpack_require__(3);
+
+	var _controls2 = _interopRequireDefault(_controls);
+
+	var _player = __webpack_require__(4);
+
+	var _player2 = _interopRequireDefault(_player);
+
+	var _bullet = __webpack_require__(5);
+
+	var _bullet2 = _interopRequireDefault(_bullet);
+
+	var _position = __webpack_require__(6);
+
+	var _position2 = _interopRequireDefault(_position);
+
+	var _collisions = __webpack_require__(7);
+
+	var _collisions2 = _interopRequireDefault(_collisions);
+
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	var Scene = {
+	function Scene(socket) {
 
-	  $el: $('#scene'),
-	  renderer: new PIXI.CanvasRenderer(1500, 1000, { antialias: true }),
-	  stage: new PIXI.Container(),
-	  user: null,
-	  socket: null,
-	  moveUp: false,
-	  moveDown: false,
-	  moveLeft: false,
-	  moveRight: false
-
-	};
-
-	Scene.setup = function setup(socket) {
-
-	  this.socket = socket;
+	  this.$el = $('#scene'), this.renderer = new PIXI.CanvasRenderer(1500, 1000, { antialias: true }), this.stage = new PIXI.Container(), this.socket = socket;
 
 	  this.$el.append(this.renderer.view);
 	};
 
-	Scene.init = function init() {
+	Scene.prototype.init = function init() {
 
-	  $(document).on('keydown keyup', this.getKeyEvents.bind(this));
-	  $(document).on('mousemove', this.getRotateAngle.bind(this));
-	  $(document).on('mousedown', this.createBullet.bind(this));
+	  this.controls = new _controls2.default(this.$el);
 
-	  this.stats = new _stats2.default(this.$el, 0, 0, 0);
+	  _stats2.default.init(this.$el, 0, 0, 0);
 
 	  this.animate();
 
 	  this.bind();
 	};
 
-	Scene.bind = function bind() {
+	Scene.prototype.bind = function bind() {
 
-	  this.socket.on('playerCreated', this.generatePlayer.bind(this));
-	  this.socket.on('playerDestroyed', this.removePlayer.bind(this));
-	  this.socket.on('updatePosition', this.updatePlayersPosition.bind(this));
-	  this.socket.on('updateRotation', this.updatePlayersRotation.bind(this));
-	  this.socket.on('bulletCreated', this.addBulletsToStage.bind(this));
-	  this.socket.on('bulletDestroyed', this.removeBulletsFromStage.bind(this));
+	  $(document).on('mousedown', this.createBullet.bind(this));
+
+	  this.socket.on('addPlayers', this.addPlayers.bind(this));
+	  this.socket.on('playerDestroyed', this.removePlayers.bind(this));
+	  this.socket.on('updatePosition', this.updateAllPositions.bind(this));
+	  this.socket.on('updateRotation', this.updateRotation.bind(this));
+	  this.socket.on('bulletCreated', this.addBullets.bind(this));
+	  this.socket.on('bulletDestroyed', this.removeBullets.bind(this));
 	};
 
-	Scene.getKeyEvents = function getKeyEvents(event) {
+	Scene.prototype.addPlayers = function addPlayers(arr) {
+	  var _this = this;
 
-	  if (!window.user) return;
+	  arr.forEach(function (obj) {
 
-	  event.preventDefault();
+	    var pos = {
+	      x: _this.renderer.width / 2,
+	      y: _this.renderer.height / 2
+	    };
 
-	  if (event.type === 'keydown') {
+	    var newPlayer = _player2.default.create(obj, pos, function (player) {
 
-	    if (event.which === 87) this.moveUp = true;
-	    if (event.which === 83) this.moveDown = true;
-	    if (event.which === 65) this.moveLeft = true;
-	    if (event.which === 68) this.moveRight = true;
-	  } else {
-
-	    if (event.which === 87) this.moveUp = false;
-	    if (event.which === 83) this.moveDown = false;
-	    if (event.which === 65) this.moveLeft = false;
-	    if (event.which === 68) this.moveRight = false;
-	  }
-	};
-
-	Scene.getRotateAngle = function getRotateAngle(event) {
-
-	  if (!window.user) return;
-
-	  var pageX = event.pageX - this.$el.offset().left;
-	  var pageY = event.pageY - this.$el.offset().top;
-
-	  var x = pageX - this.player.x;
-	  var y = pageY - this.player.y;
-
-	  var angle = Math.atan2(x, -y) * (180 / Math.PI);
-	  var rotation = angle * Math.PI / 180;
-
-	  this.socket.emit('updateRotation', window.user._id, rotation);
-	};
-
-	Scene.removePlayer = function removePlayer(id) {
-
-	  var object = this.getObjectFromStage(id);
-
-	  object.removeChildren();
-	  this.stage.removeChild(object);
-	};
-
-	Scene.addCurrentUsers = function addCurrentUsers() {
-
-	  // Players.find().fetch().forEach(player => {
-
-	  //   const params = {
-	  //     id     : player._id,
-	  //     name   : player.username,
-	  //     color  : player.color,
-	  //     health : player.health,
-	  //     x      : player.position.x,
-	  //     y      : player.position.y,
-	  //   };
-
-	  //   this.generatePlayer(params);
-
-	  // });
-
-	};
-
-	Scene.generatePlayer = function generatePlayer(params) {
-
-	  var circle = new PIXI.Graphics();
-	  circle.beginFill('0x' + params.color, 1);
-	  circle.drawCircle(0, 0, 20);
-
-	  var cannon = new PIXI.Graphics();
-	  cannon.beginFill('0x' + params.color, 1);
-	  cannon.drawRect(-2, 5, 6, -30);
-	  cannon.type = 'cannon';
-
-	  var name = new PIXI.Text(params.username, {
-	    font: '14px Avenir Next Condensed',
-	    fill: 'white'
+	      _this.stage.addChild(player);
+	    });
 	  });
-	  name.x = -(name.width / 2);
-	  name.y = -45;
-
-	  var health = new PIXI.Text(params.health || 100, {
-	    font: '14px Avenir Next Condensed',
-	    fill: 'black'
-	  });
-	  health.x = -(health.width / 2);
-	  health.y = -(health.height / 2);
-	  health.type = 'health';
-
-	  var user = new PIXI.Container();
-	  user._id = params._id;
-	  user.type = 'player';
-	  user.x = params.position.x || this.renderer.width / 2;
-	  user.y = params.position.y || this.renderer.height / 2;
-
-	  user.addChild(circle);
-	  user.addChild(cannon);
-	  user.addChild(name);
-	  user.addChild(health);
-
-	  this.stage.addChild(user);
 	};
 
-	Scene.updatePosition = function updatePosition() {
+	Scene.prototype.removePlayers = function removePlayers(id) {
 
-	  if (!this.player) return;
-
-	  var speed = 7.5;
-
-	  var x = this.player.x;
-	  var y = this.player.y;
-
-	  if (this.moveLeft) x -= speed;
-	  if (this.moveUp) y -= speed;
-	  if (this.moveRight) x += speed;
-	  if (this.moveDown) y += speed;
-
-	  if (x < 20) x = 20;
-	  if (y < 20) y = 20;
-
-	  if (x > this.renderer.width - 20) x = this.renderer.width - 20;
-	  if (y > this.renderer.height - 20) y = this.renderer.height - 20;
-
-	  var pos = {
-	    x: x,
-	    y: y
-	  };
-
-	  this.socket.emit('updatePosition', window.user._id, pos);
+	  _player2.default.remove(id, stage);
 	};
 
-	Scene.updatePlayersPosition = function updatePlayersPosition(id, pos) {
+	Scene.prototype.updatePosition = function updatePosition() {
+
+	  var pos = (0, _position2.default)(this.player, this.controls, this.renderer);
+
+	  this.socket.emit('updatePosition', window.User._id, pos);
+	};
+
+	Scene.prototype.updateAllPositions = function updateAllPositions(id, pos) {
 
 	  var player = this.getObjectFromStage(id);
 
@@ -325,7 +229,7 @@
 	  player.y = pos.y;
 	};
 
-	Scene.updatePlayersRotation = function updatePlayersRotation(id, rotation) {
+	Scene.prototype.updateRotation = function updateRotation(id, rotation) {
 
 	  var player = this.getObjectFromStage(id);
 
@@ -338,64 +242,30 @@
 	  });
 	};
 
-	Scene.createBullet = function createBullet(event) {
-
-	  if (!this.player) return;
+	Scene.prototype.createBullet = function createBullet(event) {
 
 	  event.preventDefault();
 
-	  var pageX = event.pageX - this.$el.offset().left;
-	  var pageY = event.pageY - this.$el.offset().top;
-
-	  var angle = Math.atan2(pageX - this.player.x, -(pageY - this.player.y)) * (180 / Math.PI);
-	  var radians = angle * Math.PI / 180;
-	  var speed = 1000;
-
-	  var params = {
-	    user: window.user._id,
-	    x: this.player.x,
-	    y: this.player.y,
-	    vx: Math.cos(radians) * speed / 60,
-	    vy: Math.sin(radians) * speed / 60,
-	    color: window.user.color
-	  };
+	  var params = this.controls.fire(event.pageX, event.pageY, this.player);
 
 	  this.socket.emit('createBullet', params);
 	};
 
-	Scene.addBulletsToStage = function addBulletsToStage(doc) {
+	Scene.prototype.addBullets = function addBullets(doc) {
+	  var _this2 = this;
 
-	  var circle = new PIXI.Graphics();
+	  var newBullet = _bullet2.default.create(doc, function (bullet) {
 
-	  circle.beginFill('0x' + doc.color, 1);
-	  circle.drawCircle(0, 0, 2);
-
-	  var bullet = new PIXI.Container();
-
-	  bullet.x = doc.position.x;
-	  bullet.y = doc.position.y;
-	  bullet._id = doc._id;
-	  bullet.user = doc.user;
-	  bullet.type = 'bullet';
-
-	  bullet.direction = {
-	    x: doc.direction.x,
-	    y: doc.direction.y
-	  };
-
-	  bullet.addChild(circle);
-	  this.stage.addChild(bullet);
+	    _this2.stage.addChild(bullet);
+	  });
 	};
 
-	Scene.removeBulletsFromStage = function removeBulletsFromStage(id) {
+	Scene.prototype.removeBullets = function removeBullets(id) {
 
-	  var object = this.getObjectFromStage(id);
-
-	  object.removeChildren();
-	  this.stage.removeChild(object);
+	  _bullet2.default.remove(id, stage);
 	};
 
-	Scene.updateBullets = function updateBullets() {
+	Scene.prototype.updateBullets = function updateBullets() {
 
 	  this.stage.children.forEach(function (object) {
 
@@ -407,86 +277,35 @@
 	  });
 	};
 
-	Scene.updatePlayersHealth = function updatePlayersHealth() {
-
-	  // this.stage.children.forEach(object => {
-
-	  //   if(object.type === 'player') {
-
-	  //     const player = Players.findOne({ _id: object._id });
-
-	  //     if(!player) return;
-
-	  //     object.children.forEach(child => {
-
-	  //       if(child.type === 'health') {
-
-	  //         child.text = player.health;
-	  //         child.x    = -(child.width / 2);
-	  //         child.y    = -(child.height / 2);
-
-	  //       }
-
-	  //     });
-
-	  //   }
-
-	  // });
-
-	};
-
-	Scene.collisionDetection = function collisionDetection() {
-	  var _this = this;
-
-	  if (!this.player) return;
-
-	  var px = this.player.x;
-	  var py = this.player.y;
+	Scene.prototype.updateHealth = function updateHealth() {
 
 	  this.stage.children.forEach(function (object) {
 
-	    if (object.type === 'bullet') {
+	    if (object.type === 'player') {
 
-	      var ox = object.x;
-	      var oy = object.y;
+	      object.children.forEach(function (child) {
 
-	      // Dont check for collision if bullet belongs to window.user
-	      if (object.user !== window.user._id) {
+	        if (child.type === 'health') {
 
-	        if (ox > px - 20 && ox < px + 20 && oy > py - 20 && oy < py + 20) {
+	          child.text = child.health;
 
-	          // Increase the health of the player who shot the bullet by 5
-	          _this.socket.emit('increaseHealth', object.user);
-
-	          // Decrease the health of the player who was shot by 10
-	          _this.socket.emit('decreaseHealth', window.user._id);
-
-	          // Remove the bullet from the collection and clients ui
-	          _this.socket.emit('removeBullet', object._id);
+	          child.x = -(child.width / 2);
+	          child.y = -(child.height / 2);
 	        }
-	      } else {
-
-	        // Remove any bullets that leave the clients ui
-	        if (ox > _this.renderer.width || ox < 0 || oy > _this.renderer.height || oy < 0) {
-
-	          _this.socket.emit('removeBullet', object._id);
-	        }
-	      }
+	      });
 	    }
 	  });
 	};
 
-	Scene.removeDeadPlayers = function removeDeadPlayers() {
+	Scene.prototype.removeDeadPlayers = function removeDeadPlayers() {
 
-	  if (!window.user) return;
+	  if (window.User.health <= 0) {
 
-	  if (window.user.health <= 0) {
-
-	    this.socket.emit('removePlayer', window.user._id);
+	    this.socket.emit('removePlayer', window.User._id);
 	  }
 	};
 
-	Scene.getObjectFromStage = function getObjectFromStage(id) {
+	Scene.prototype.getObjectFromStage = function getObjectFromStage(id) {
 
 	  return this.stage.children.filter(function (child) {
 
@@ -494,35 +313,39 @@
 	  })[0];
 	};
 
-	Scene.update = function update() {
+	Scene.prototype.update = function update() {
 
-	  this.player = this.getObjectFromStage(window.user._id);
+	  this.player = this.getObjectFromStage(window.User._id);
+
+	  if (!this.player) return;
+
+	  var rotation = this.controls.getRotation(this.player.x, this.player.y);
+
+	  this.socket.emit('updateRotation', window.User._id, rotation);
 
 	  this.updatePosition();
 
 	  this.updateBullets();
 
-	  // this.updatePlayersHealth();
+	  // this.updateHealth();
 
-	  // this.collisionDetection();
+	  _collisions2.default.run(this.player, this.stage, this.renderer, this.socket);
 
 	  this.removeDeadPlayers();
 	};
 
-	Scene.animate = function animate() {
+	Scene.prototype.animate = function animate() {
 
 	  requestAnimationFrame(this.animate.bind(this));
 
-	  this.stats.begin();
+	  _stats2.default.begin();
 
 	  this.renderer.render(this.stage);
 
 	  this.update();
 
-	  this.stats.end();
+	  _stats2.default.end();
 	};
-
-	exports.default = Scene;
 
 /***/ },
 /* 2 */
@@ -533,9 +356,13 @@
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
-	var stats = function stats(el, mode, top, left) {
+	var STATS = {
 
-	  this.stats = new Stats();
+	  stats: new Stats()
+
+	};
+
+	STATS.init = function init(el, mode, top, left) {
 
 	  this.setMode(0 || mode);
 
@@ -546,29 +373,428 @@
 	  $el.append(this.stats.domElement);
 	};
 
-	stats.prototype.setMode = function setMode(mode) {
+	STATS.setMode = function setMode(mode) {
 
 	  this.stats.setMode(mode);
 	};
 
-	stats.prototype.setPosition = function setPosition(top, left) {
+	STATS.setPosition = function setPosition(top, left) {
 
 	  this.stats.domElement.style.position = 'absolute';
 	  this.stats.domElement.style.left = left + 'px';
 	  this.stats.domElement.style.top = top + 'px';
 	};
 
-	stats.prototype.begin = function begin() {
+	STATS.begin = function begin() {
 
 	  this.stats.begin();
 	};
 
-	stats.prototype.end = function end() {
+	STATS.end = function end() {
 
 	  this.stats.end();
 	};
 
-	exports.default = stats;
+	exports.default = STATS;
+
+/***/ },
+/* 3 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.default = Controls;
+	function Controls(el) {
+
+	  this.$el = el;
+	  this.up = false;
+	  this.down = false;
+	  this.left = false;
+	  this.right = false;
+	  this.x = 0;
+	  this.y = 0;
+
+	  this.bind();
+	};
+
+	Controls.prototype.bind = function bind() {
+
+	  $(document).on('keydown keyup', this.getKeyEvents.bind(this));
+	  $(document).on('mousemove', this.getPointerPos.bind(this));
+	};
+
+	Controls.prototype.getKeyEvents = function getKeyEvents(event) {
+
+	  event.preventDefault();
+
+	  if (event.type === 'keydown') {
+
+	    if (event.which === 87) this.up = true;
+	    if (event.which === 83) this.down = true;
+	    if (event.which === 65) this.left = true;
+	    if (event.which === 68) this.right = true;
+	  } else {
+
+	    if (event.which === 87) this.up = false;
+	    if (event.which === 83) this.down = false;
+	    if (event.which === 65) this.left = false;
+	    if (event.which === 68) this.right = false;
+	  }
+	};
+
+	Controls.prototype.getPointerPos = function getPointerPos(event) {
+
+	  this.x = event.pageX;
+	  this.y = event.pageY;
+	};
+
+	Controls.prototype.getRotation = function getRotation(px, py) {
+
+	  var pageX = this.x - this.$el.offset().left;
+	  var pageY = this.y - this.$el.offset().top;
+
+	  var x = pageX - px;
+	  var y = pageY - py;
+
+	  var angle = Math.atan2(x, -y) * (180 / Math.PI);
+	  var rotation = angle * Math.PI / 180;
+
+	  return rotation;
+	};
+
+	Controls.prototype.fire = function fire(x, y, player) {
+
+	  var px = player.x;
+	  var py = player.y;
+
+	  var pageX = x - this.$el.offset().left;
+	  var pageY = y - this.$el.offset().top;
+
+	  var angle = Math.atan2(pageX - px, -(pageY - py)) * (180 / Math.PI);
+	  var radians = angle * Math.PI / 180;
+	  var speed = 1000;
+
+	  var params = {
+	    user: window.User._id,
+	    color: window.User.color,
+	    x: px,
+	    y: py,
+	    vx: Math.cos(radians) * speed / 60,
+	    vy: Math.sin(radians) * speed / 60
+	  };
+
+	  return params;
+	};
+
+/***/ },
+/* 4 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	/**
+	 *  @fileoverview - Module for creating players and adding them to the stage.
+	 *
+	 *  @Param - renderer - PIXI WebGL/Canvas Renderer.
+	 *  @Param - stage    - PIXI Container.
+	 *  @Param - props    - Player properties.
+	 */
+	var Player = {
+
+	  pos: null,
+	  props: null,
+	  body: null,
+	  cannon: null,
+	  name: null,
+	  health: null,
+	  player: null
+
+	};
+
+	Player.create = function create(props, pos, callback) {
+
+	  this.pos = pos;
+	  this.props = props;
+
+	  this.createBody();
+	  this.createCannon();
+	  this.createName();
+	  this.createHealth();
+	  this.createPlayer();
+
+	  callback(this.player);
+
+	  return Object.create(this, {});
+	};
+
+	Player.createBody = function createBody() {
+
+	  this.body = new PIXI.Graphics();
+
+	  this.body.beginFill('0x' + this.props.color, 1);
+	  this.body.drawCircle(0, 0, 20);
+	};
+
+	Player.createCannon = function createCannon() {
+
+	  this.cannon = new PIXI.Graphics();
+
+	  this.cannon.beginFill('0x' + this.props.color, 1);
+	  this.cannon.drawRect(-2, 5, 6, -30);
+
+	  this.cannon.type = 'cannon';
+	};
+
+	Player.createName = function createName() {
+
+	  this.name = new PIXI.Text(this.props.username, {
+	    font: '14px Avenir Next Condensed',
+	    fill: 'white'
+	  });
+
+	  this.name.x = -(this.name.width / 2);
+	  this.name.y = -45;
+	};
+
+	Player.createHealth = function createHealth() {
+
+	  this.health = new PIXI.Text(this.props.health || 100, {
+	    font: '14px Avenir Next Condensed',
+	    fill: 'black'
+	  });
+
+	  this.health.x = -(this.health.width / 2);
+	  this.health.y = -(this.health.height / 2);
+
+	  this.health.type = 'health';
+	};
+
+	Player.createPlayer = function createPlayer() {
+
+	  this.player = new PIXI.Container();
+
+	  this.player._id = this.props._id;
+
+	  this.player.x = this.props.position.x || this.pos.x;
+	  this.player.y = this.props.position.y || this.pos.y;
+
+	  this.player.type = 'player';
+
+	  this.player.addChild(this.body);
+	  this.player.addChild(this.cannon);
+	  this.player.addChild(this.name);
+	  this.player.addChild(this.health);
+	};
+
+	Player.remove = function remove(id, stage) {
+
+	  stage.children.forEach(function (child) {
+
+	    if (child._id === id && child.type === 'player') {
+
+	      child.removeChildren();
+	      stage.removeChild(child);
+	    }
+	  });
+	};
+
+	exports.default = Player;
+
+/***/ },
+/* 5 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	var Bullet = {
+
+	  props: null,
+	  body: null,
+	  bullet: null
+
+	};
+
+	Bullet.create = function create(props, callback) {
+
+	  this.props = props;
+
+	  this.createBody();
+	  this.createBullet();
+
+	  callback(this.bullet);
+
+	  return Object.create(this, {});
+	};
+
+	Bullet.createBody = function createBody() {
+
+	  this.body = new PIXI.Graphics();
+
+	  this.body.beginFill('0x' + this.props.color, 1);
+	  this.body.drawCircle(0, 0, 2);
+	};
+
+	Bullet.createBullet = function createBullet() {
+
+	  this.bullet = new PIXI.Container();
+
+	  this.bullet._id = this.props._id;
+	  this.bullet.user = this.props.user;
+
+	  this.bullet.x = this.props.position.x;
+	  this.bullet.y = this.props.position.y;
+
+	  this.bullet.type = 'bullet';
+
+	  this.bullet.direction = {
+	    x: this.props.direction.x,
+	    y: this.props.direction.y
+	  };
+
+	  this.bullet.addChild(this.body);
+	};
+
+	Bullet.remove = function remove(id, stage) {
+
+	  stage.children.forEach(function (child) {
+
+	    if (child._id === id && child.type === 'bullet') {
+
+	      child.removeChildren();
+	      stage.removeChild(child);
+	    }
+	  });
+	};
+
+	exports.default = Bullet;
+
+/***/ },
+/* 6 */
+/***/ function(module, exports) {
+
+	"use strict";
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.default = Position;
+	function Position(player, controls, renderer) {
+
+	  var speed = 7.5;
+
+	  var x = player.x;
+	  var y = player.y;
+
+	  if (controls.left) x -= speed;
+	  if (controls.up) y -= speed;
+	  if (controls.right) x += speed;
+	  if (controls.down) y += speed;
+
+	  if (x < 20) x = 20;
+	  if (y < 20) y = 20;
+
+	  if (x > renderer.width - 20) x = renderer.width - 20;
+	  if (y > renderer.height - 20) y = renderer.height - 20;
+
+	  var pos = {
+	    x: x,
+	    y: y
+	  };
+
+	  return pos;
+	};
+
+/***/ },
+/* 7 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	var Collisions = {
+
+	  player: null,
+	  stage: null,
+	  renderer: null,
+	  socket: null
+
+	};
+
+	Collisions.run = function run(player, stage, renderer, socket) {
+	  var _this = this;
+
+	  this.renderer = renderer;
+	  this.socket = socket;
+
+	  stage.children.forEach(function (object) {
+
+	    if (object.type === 'bullet') {
+
+	      var params = {
+	        object: object,
+	        px: player.x,
+	        py: player.y,
+	        bx: object.x,
+	        by: object.y
+	      };
+
+	      if (object.user !== window.User._id) {
+
+	        _this.checkPlayerCollision(params);
+	      } else {
+
+	        _this.checkWallCollision(params);
+	      }
+	    }
+	  });
+	};
+
+	Collisions.checkPlayerCollision = function checkPlayerCollision(params) {
+
+	  if (params.bx > params.px - 20 && params.bx < params.px + 20 && params.by > params.py - 20 && params.by < params.py + 20) {
+
+	    this.playerCollision(params.object);
+	  }
+	};
+
+	Collisions.checkWallCollision = function checkWallCollision(params) {
+
+	  if (params.bx > this.renderer.width || params.by > this.renderer.height || params.bx < 0 || params.by < 0) {
+
+	    this.wallCollision(params.object);
+	  }
+	};
+
+	Collisions.playerCollision = function playerCollision(object) {
+
+	  console.log('--- PLAYER COLLISION ---');
+
+	  this.socket.emit('decreaseHealth', window.user._id);
+
+	  this.socket.emit('increaseHealth', object.user);
+
+	  this.socket.emit('removeBullet', object._id);
+	};
+
+	Collisions.wallCollision = function wallCollision(object) {
+
+	  console.log('--- WALL COLLISION ---');
+
+	  this.socket.emit('removeBullet', object._id);
+	};
+
+	exports.default = Collisions;
 
 /***/ }
 /******/ ]);

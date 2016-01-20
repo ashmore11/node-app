@@ -14,7 +14,7 @@ App.init = function init() {
 
   this.socket.on('connect', () => {
 
-    Scene.setup(this.socket);
+    this.scene = new Scene(this.socket);
   
     console.log('socket connected');
 
@@ -68,11 +68,11 @@ App.submitForm = function submitForm(event) {
 
     } else {
 
-      window.user = doc;
+      window.User = doc;
 
       TweenMax.to(this.$form, 0.25, { autoAlpha: 0 });
 
-      Scene.init(this.socket);
+      this.scene.init();
 
     }
 

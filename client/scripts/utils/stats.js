@@ -1,6 +1,10 @@
-const stats = function stats(el, mode, top, left) {
+const STATS = {
 
-  this.stats = new Stats();
+  stats: new Stats(),
+
+};
+
+STATS.init = function init(el, mode, top, left) {
 
   this.setMode(0 || mode);
 
@@ -12,13 +16,13 @@ const stats = function stats(el, mode, top, left) {
 
 };
 
-stats.prototype.setMode = function setMode(mode) {
+STATS.setMode = function setMode(mode) {
 
   this.stats.setMode(mode);
 
 };
 
-stats.prototype.setPosition = function setPosition(top, left) {
+STATS.setPosition = function setPosition(top, left) {
 
   this.stats.domElement.style.position = 'absolute';
   this.stats.domElement.style.left     = `${left}px`;
@@ -26,16 +30,16 @@ stats.prototype.setPosition = function setPosition(top, left) {
 
 };
 
-stats.prototype.begin = function begin() {
+STATS.begin = function begin() {
 
   this.stats.begin();
 
 };
 
-stats.prototype.end = function end() {
+STATS.end = function end() {
 
   this.stats.end();
 
 };
 
-export default stats;
+export default STATS;
