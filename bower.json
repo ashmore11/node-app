@@ -23,7 +23,8 @@
     "socket.io-client": "~1.4.4",
     "pixi.js": "~3.0.9",
     "randomcolor": "randomColor#~0.4.2",
-    "stats.js": "*"
+    "stats.js": "*",
+    "happens": "~0.6.0"
   },
   "overrides": {
     "socket.io-client": {

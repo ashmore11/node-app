@@ -1,16 +1,16 @@
-import Stats      from 'app/utils/stats';
-import Controls   from 'app/components/controls';
-import Player     from 'app/components/player';
-import Bullet     from 'app/components/bullet';
-import Position   from 'app/components/position';
+import Stats from 'app/utils/stats';
+import Renderer from 'app/components/renderer';
+import Stage from 'app/components/stage';
+import Controls from 'app/components/controls';
+import Player from 'app/components/player';
+import Bullet from 'app/components/bullet';
+import Position from 'app/components/position';
 import Collisions from 'app/components/collisions';
 
 const Scene = {
 
-  $el      : $('#scene'),
-  renderer : new PIXI.CanvasRenderer(1500, 1000, { antialias: true }),
-  stage    : new PIXI.Container(),
-  socket   : null,
+  $el: $('#scene'),
+  socket: null,
 
 };
 
@@ -18,32 +18,43 @@ Scene.init = function init(socket) {
 
   this.socket = socket;
 
-  this.$el.append(this.renderer.view);
+  this.$el.append(Renderer.view);
+
+  Collisions.init();
 
 };
 
 Scene.start = function start() {
+
+  this.socket.emit('sceneReady');
 
   Controls.init(this.$el);
 
   Stats.init(this.$el, 0, 0, 0);
 
   this.animate();
-  
+
   this.bind();
 
 };
 
 Scene.bind = function bind() {
 
-  $(document).on('mousedown', this.createBullet.bind(this));
+  Controls.on('mousedown', this.createBullet.bind(this));
 
-  this.socket.on('addPlayers',      this.addPlayers.bind(this));
-  this.socket.on('playerDestroyed', this.removePlayers.bind(this));
-  this.socket.on('updatePosition',  this.updateAllPositions.bind(this));
-  this.socket.on('updateRotation',  this.updateRotation.bind(this));
-  this.socket.on('bulletCreated',   this.addBullets.bind(this));
-  this.socket.on('bulletDestroyed', this.removeBullets.bind(this));
+  this.socket.on('addPlayers', this.addPlayers.bind(this));
+
+  this.socket.on('playerCreated', this.addPlayer.bind(this));
+  this.socket.on('playerDestroyed', id => Player.remove(id));
+
+  this.socket.on('updatePosition', this.updateAllPositions.bind(this));
+  this.socket.on('updateRotation', this.updateRotation.bind(this));
+
+  this.socket.on('bulletCreated', this.addBullets.bind(this));
+  this.socket.on('bulletDestroyed', id => Bullet.remove(id));
+
+  Collisions.on('player:hit', this.playerCollision.bind(this));
+  Collisions.on('wall:hit', this.wallCollision.bind(this));
 
 };
 
@@ -51,30 +62,38 @@ Scene.addPlayers = function addPlayers(arr) {
 
   arr.forEach(obj => {
 
-    const pos = {
-      x: this.renderer.width / 2,
-      y: this.renderer.height / 2,
-    };
+    const newPlayer = Object.assign(Object.create(Player), obj);
 
-    const newPlayer = Player.create(obj, pos, player => {
+    newPlayer.create();
 
-      this.stage.addChild(player);
+    const x = newPlayer.position.x || Renderer.width / 2;
+    const y = newPlayer.position.y || Renderer.height / 2;
 
-    });
+    newPlayer.player.x = x;
+    newPlayer.player.y = y;
+
+    Stage.addChild(newPlayer.player);
 
   });
 
 };
 
-Scene.removePlayers = function removePlayers(id) {
+Scene.addPlayer = function addPlayer(obj) {
 
-  Player.remove(id, stage);
+  const newPlayer = Object.assign(Object.create(Player), obj);
+
+  newPlayer.create();
+
+  newPlayer.player.x = Renderer.width / 2;
+  newPlayer.player.y = Renderer.height / 2;
+
+  Stage.addChild(newPlayer.player);
 
 };
 
 Scene.updatePosition = function updatePosition() {
 
-  const pos = Position(this.player, Controls, this.renderer);
+  const pos = Position(this.player);
 
   this.socket.emit('updatePosition', window.User._id, pos);
 
@@ -82,9 +101,7 @@ Scene.updatePosition = function updatePosition() {
 
 Scene.updateAllPositions = function updateAllPositions(id, pos) {
 
-  console.log(id);
-
-  const player = this.getObjectFromStage(id);
+  const player = Stage.getObjectById(id);
 
   player.x = pos.x;
   player.y = pos.y;
@@ -93,7 +110,7 @@ Scene.updateAllPositions = function updateAllPositions(id, pos) {
 
 Scene.updateRotation = function updateRotation(id, rotation) {
 
-  const player = this.getObjectFromStage(id);
+  const player = Stage.getObjectById(id);
 
   player.children.forEach((child) => {
 
@@ -107,50 +124,43 @@ Scene.updateRotation = function updateRotation(id, rotation) {
 
 };
 
-Scene.createBullet = function createBullet(event) {
+Scene.playerCollision = function playerCollision(object) {
 
-  event.preventDefault();
+  this.socket.emit('decreaseHealth', window.user._id);
 
-  const params = Controls.fire(event.pageX, event.pageY, this.player);
+  this.socket.emit('increaseHealth', object.user);
+
+  this.socket.emit('removeBullet', object._id);
+
+};
+
+Scene.createBullet = function createBullet() {
+
+  const params = Controls.fireBullet(this.player);
 
   this.socket.emit('createBullet', params);
 
 };
 
-Scene.addBullets = function addBullets(doc) {
+Scene.addBullets = function addBullets(obj) {
 
-  const newBullet = Bullet.create(doc, bullet => {
+  const newBullet = Object.assign(Object.create(Bullet), obj);
 
-    this.stage.addChild(bullet);
+  newBullet.create();
 
-  });
-
-};
-
-Scene.removeBullets = function removeBullets(id) {
-
-  Bullet.remove(id, this.stage);
+  Stage.addChild(newBullet.bullet);
 
 };
 
-Scene.updateBullets = function updateBullets() {
+Scene.wallCollision = function wallCollision(id) {
 
-  this.stage.children.forEach(object => {
-
-    if (object.type === 'bullet') {
-
-      object.x = object.x + object.direction.y;
-      object.y = object.y - object.direction.x;
-
-    }
-
-  });
+  this.socket.emit('removeBullet', id);
 
 };
 
 Scene.updateHealth = function updateHealth() {
 
-  this.stage.children.forEach(object => {
+  Stage.children.forEach(object => {
 
     if (object.type === 'player') {
 
@@ -183,19 +193,9 @@ Scene.removeDeadPlayers = function removeDeadPlayers() {
 
 };
 
-Scene.getObjectFromStage = function getObjectFromStage(id) {
-
-  return this.stage.children.filter(child => {
-
-    if (child._id === id) return child;
-
-  })[0];
-
-};
-
 Scene.update = function update() {
 
-  this.player = this.getObjectFromStage(window.User._id);
+  this.player = Stage.getObjectById(window.User._id);
 
   if (!this.player) return;
 
@@ -205,11 +205,11 @@ Scene.update = function update() {
 
   this.updatePosition();
 
-  this.updateBullets();
+  Bullet.update();
 
   // this.updateHealth();
 
-  Collisions.run(this.player, this.stage, this.renderer, this.socket)
+  Collisions.run(this.player, Stage, Renderer, this.socket);
 
   this.removeDeadPlayers();
 
@@ -221,7 +221,7 @@ Scene.animate = function animate() {
 
   Stats.begin();
 
-  this.renderer.render(this.stage);
+  Renderer.render(Stage);
 
   this.update();
 

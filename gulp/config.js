@@ -49,6 +49,30 @@ export default {
 	},
 
 	/**
+	 * Config for linting
+	 */
+	eslint: {
+    extends: 'airbnb/base',
+    rules: {
+      'padded-blocks': [2, 'always'],
+      'no-param-reassign': [2, { 'props': false }],
+      'new-cap': [2, {'capIsNewExceptions': ['Position', 'Happens']}],
+      'no-console': 0,
+      'no-alert': 0,
+    },
+    globals: {
+      'TweenMax': true,
+      '$': true,
+      'io': true,
+      'PIXI': true,
+      'Stats': true,
+      '_': true,
+      'randomColor': true,
+      'Happens': true,
+    },
+  },
+
+	/**
 	 * Config for the webpack module bundler
 	 */
 	webpack: {
@@ -57,13 +81,13 @@ export default {
 			filename: 'app.js',
 		},
 		module: {
-			loaders: [{ 
-				test: /\.js$/, 
-				exclude: /node_modules/, 
-				loader: 'babel', 
+			loaders: [{
+				test: /\.js$/,
+				exclude: /node_modules/,
+				loader: 'babel',
 				query: {
 					presets: ['es2015']
-				} 
+				}
 			}]
 		},
 		resolve: {

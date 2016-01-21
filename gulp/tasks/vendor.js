@@ -6,7 +6,7 @@ import uglify         from 'gulp-uglify';
 import rename         from 'gulp-rename';
 import handleError    from '../util/handleError';
 import config         from '../config';
- 
+
 gulp.task('vendor', function() {
 
   gulp.src(mainBowerFiles())

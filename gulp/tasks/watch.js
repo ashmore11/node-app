@@ -9,7 +9,7 @@ gulp.task('watch', function() {
   livereload.listen();
 
 	gulp.watch(config.paths.styles.watch, ['styles']);
-	gulp.watch(config.paths.scripts.watch, ['scripts']);
+	gulp.watch(config.paths.scripts.watch, ['lint', 'scripts']);
 
   watch(config.paths.templates.watch, function() {
 

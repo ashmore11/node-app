@@ -66,8 +66,7 @@
 
 	  this.socket.on('connect', function () {
 
-	    // console.log('socket connected');
-
+	    console.log('socket connected');
 	  });
 
 	  _scene2.default.init(this.socket);
@@ -139,23 +138,31 @@
 
 	var _stats2 = _interopRequireDefault(_stats);
 
-	var _controls = __webpack_require__(3);
+	var _renderer = __webpack_require__(3);
+
+	var _renderer2 = _interopRequireDefault(_renderer);
+
+	var _stage = __webpack_require__(4);
+
+	var _stage2 = _interopRequireDefault(_stage);
+
+	var _controls = __webpack_require__(5);
 
 	var _controls2 = _interopRequireDefault(_controls);
 
-	var _player = __webpack_require__(4);
+	var _player = __webpack_require__(6);
 
 	var _player2 = _interopRequireDefault(_player);
 
-	var _bullet = __webpack_require__(5);
+	var _bullet = __webpack_require__(7);
 
 	var _bullet2 = _interopRequireDefault(_bullet);
 
-	var _position = __webpack_require__(6);
+	var _position = __webpack_require__(8);
 
 	var _position2 = _interopRequireDefault(_position);
 
-	var _collisions = __webpack_require__(7);
+	var _collisions = __webpack_require__(9);
 
 	var _collisions2 = _interopRequireDefault(_collisions);
 
@@ -164,8 +171,6 @@
 	var Scene = {
 
 	  $el: $('#scene'),
-	  renderer: new PIXI.CanvasRenderer(1500, 1000, { antialias: true }),
-	  stage: new PIXI.Container(),
 	  socket: null
 
 	};
@@ -174,10 +179,14 @@
 
 	  this.socket = socket;
 
-	  this.$el.append(this.renderer.view);
+	  this.$el.append(_renderer2.default.view);
+
+	  _collisions2.default.init();
 	};
 
 	Scene.start = function start() {
+
+	  this.socket.emit('sceneReady');
 
 	  _controls2.default.init(this.$el);
 
@@ -190,50 +199,67 @@
 
 	Scene.bind = function bind() {
 
-	  $(document).on('mousedown', this.createBullet.bind(this));
+	  _controls2.default.on('mousedown', this.createBullet.bind(this));
 
 	  this.socket.on('addPlayers', this.addPlayers.bind(this));
-	  this.socket.on('playerDestroyed', this.removePlayers.bind(this));
+
+	  this.socket.on('playerCreated', this.addPlayer.bind(this));
+	  this.socket.on('playerDestroyed', function (id) {
+	    return _player2.default.remove(id);
+	  });
+
 	  this.socket.on('updatePosition', this.updateAllPositions.bind(this));
 	  this.socket.on('updateRotation', this.updateRotation.bind(this));
+
 	  this.socket.on('bulletCreated', this.addBullets.bind(this));
-	  this.socket.on('bulletDestroyed', this.removeBullets.bind(this));
+	  this.socket.on('bulletDestroyed', function (id) {
+	    return _bullet2.default.remove(id);
+	  });
+
+	  _collisions2.default.on('player:hit', this.playerCollision.bind(this));
+	  _collisions2.default.on('wall:hit', this.wallCollision.bind(this));
 	};
 
 	Scene.addPlayers = function addPlayers(arr) {
-	  var _this = this;
 
 	  arr.forEach(function (obj) {
 
-	    var pos = {
-	      x: _this.renderer.width / 2,
-	      y: _this.renderer.height / 2
-	    };
+	    var newPlayer = Object.assign(Object.create(_player2.default), obj);
 
-	    var newPlayer = _player2.default.create(obj, pos, function (player) {
+	    newPlayer.create();
 
-	      _this.stage.addChild(player);
-	    });
+	    var x = newPlayer.position.x || _renderer2.default.width / 2;
+	    var y = newPlayer.position.y || _renderer2.default.height / 2;
+
+	    newPlayer.player.x = x;
+	    newPlayer.player.y = y;
+
+	    _stage2.default.addChild(newPlayer.player);
 	  });
 	};
 
-	Scene.removePlayers = function removePlayers(id) {
+	Scene.addPlayer = function addPlayer(obj) {
 
-	  _player2.default.remove(id, stage);
+	  var newPlayer = Object.assign(Object.create(_player2.default), obj);
+
+	  newPlayer.create();
+
+	  newPlayer.player.x = _renderer2.default.width / 2;
+	  newPlayer.player.y = _renderer2.default.height / 2;
+
+	  _stage2.default.addChild(newPlayer.player);
 	};
 
 	Scene.updatePosition = function updatePosition() {
 
-	  var pos = (0, _position2.default)(this.player, _controls2.default, this.renderer);
+	  var pos = (0, _position2.default)(this.player);
 
 	  this.socket.emit('updatePosition', window.User._id, pos);
 	};
 
 	Scene.updateAllPositions = function updateAllPositions(id, pos) {
 
-	  console.log(id);
-
-	  var player = this.getObjectFromStage(id);
+	  var player = _stage2.default.getObjectById(id);
 
 	  player.x = pos.x;
 	  player.y = pos.y;
@@ -241,7 +267,7 @@
 
 	Scene.updateRotation = function updateRotation(id, rotation) {
 
-	  var player = this.getObjectFromStage(id);
+	  var player = _stage2.default.getObjectById(id);
 
 	  player.children.forEach(function (child) {
 
@@ -252,44 +278,39 @@
 	  });
 	};
 
-	Scene.createBullet = function createBullet(event) {
+	Scene.playerCollision = function playerCollision(object) {
 
-	  event.preventDefault();
+	  this.socket.emit('decreaseHealth', window.user._id);
 
-	  var params = _controls2.default.fire(event.pageX, event.pageY, this.player);
+	  this.socket.emit('increaseHealth', object.user);
+
+	  this.socket.emit('removeBullet', object._id);
+	};
+
+	Scene.createBullet = function createBullet() {
+
+	  var params = _controls2.default.fireBullet(this.player);
 
 	  this.socket.emit('createBullet', params);
 	};
 
-	Scene.addBullets = function addBullets(doc) {
-	  var _this2 = this;
+	Scene.addBullets = function addBullets(obj) {
 
-	  var newBullet = _bullet2.default.create(doc, function (bullet) {
+	  var newBullet = Object.assign(Object.create(_bullet2.default), obj);
 
-	    _this2.stage.addChild(bullet);
-	  });
+	  newBullet.create();
+
+	  _stage2.default.addChild(newBullet.bullet);
 	};
 
-	Scene.removeBullets = function removeBullets(id) {
+	Scene.wallCollision = function wallCollision(id) {
 
-	  _bullet2.default.remove(id, this.stage);
-	};
-
-	Scene.updateBullets = function updateBullets() {
-
-	  this.stage.children.forEach(function (object) {
-
-	    if (object.type === 'bullet') {
-
-	      object.x = object.x + object.direction.y;
-	      object.y = object.y - object.direction.x;
-	    }
-	  });
+	  this.socket.emit('removeBullet', id);
 	};
 
 	Scene.updateHealth = function updateHealth() {
 
-	  this.stage.children.forEach(function (object) {
+	  _stage2.default.children.forEach(function (object) {
 
 	    if (object.type === 'player') {
 
@@ -315,17 +336,9 @@
 	  }
 	};
 
-	Scene.getObjectFromStage = function getObjectFromStage(id) {
-
-	  return this.stage.children.filter(function (child) {
-
-	    if (child._id === id) return child;
-	  })[0];
-	};
-
 	Scene.update = function update() {
 
-	  this.player = this.getObjectFromStage(window.User._id);
+	  this.player = _stage2.default.getObjectById(window.User._id);
 
 	  if (!this.player) return;
 
@@ -335,11 +348,11 @@
 
 	  this.updatePosition();
 
-	  this.updateBullets();
+	  _bullet2.default.update();
 
 	  // this.updateHealth();
 
-	  _collisions2.default.run(this.player, this.stage, this.renderer, this.socket);
+	  _collisions2.default.run(this.player, _stage2.default, _renderer2.default, this.socket);
 
 	  this.removeDeadPlayers();
 	};
@@ -350,7 +363,7 @@
 
 	  _stats2.default.begin();
 
-	  this.renderer.render(this.stage);
+	  _renderer2.default.render(_stage2.default);
 
 	  this.update();
 
@@ -413,6 +426,47 @@
 /* 3 */
 /***/ function(module, exports) {
 
+	"use strict";
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	var width = 1500;
+	var height = 1000;
+
+	var options = {
+	  antialias: true
+	};
+
+	var Renderer = new PIXI.CanvasRenderer(width, height, options);
+
+	exports.default = Renderer;
+
+/***/ },
+/* 4 */
+/***/ function(module, exports) {
+
+	"use strict";
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	var Stage = new PIXI.Container();
+
+	Stage.getObjectById = function getObjectById(id) {
+
+	  return Stage.children.filter(function (child) {
+
+	    if (child._id === id) return child;
+	  })[0];
+	};
+
+	exports.default = Stage;
+
+/***/ },
+/* 5 */
+/***/ function(module, exports) {
+
 	'use strict';
 
 	Object.defineProperty(exports, "__esModule", {
@@ -432,6 +486,8 @@
 
 	Controls.init = function init(el) {
 
+	  Happens(this);
+
 	  this.$el = el;
 
 	  this.bind();
@@ -440,7 +496,8 @@
 	Controls.bind = function bind() {
 
 	  $(document).on('keydown keyup', this.getKeyEvents.bind(this));
-	  $(document).on('mousemove', this.getPointerPos.bind(this));
+	  $(document).on('mousemove', this.mousemove.bind(this));
+	  $(document).on('mousedown', this.mousedown.bind(this));
 	};
 
 	Controls.getKeyEvents = function getKeyEvents(event) {
@@ -462,10 +519,15 @@
 	  }
 	};
 
-	Controls.getPointerPos = function getPointerPos(event) {
+	Controls.mousemove = function mousemove(event) {
 
 	  this.x = event.pageX;
 	  this.y = event.pageY;
+	};
+
+	Controls.mousedown = function mousedown() {
+
+	  this.emit('mousedown');
 	};
 
 	Controls.getRotation = function getRotation(px, py) {
@@ -482,13 +544,13 @@
 	  return rotation;
 	};
 
-	Controls.fire = function fire(x, y, player) {
+	Controls.fireBullet = function fire(player) {
 
 	  var px = player.x;
 	  var py = player.y;
 
-	  var pageX = x - this.$el.offset().left;
-	  var pageY = y - this.$el.offset().top;
+	  var pageX = this.x - this.$el.offset().left;
+	  var pageY = this.y - this.$el.offset().top;
 
 	  var angle = Math.atan2(pageX - px, -(pageY - py)) * (180 / Math.PI);
 	  var radians = angle * Math.PI / 180;
@@ -509,54 +571,37 @@
 	exports.default = Controls;
 
 /***/ },
-/* 4 */
-/***/ function(module, exports) {
+/* 6 */
+/***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
-	/**
-	 *  @fileoverview - Module for creating players and adding them to the stage.
-	 *
-	 *  @Param - renderer - PIXI WebGL/Canvas Renderer.
-	 *  @Param - stage    - PIXI Container.
-	 *  @Param - props    - Player properties.
-	 */
-	var Player = {
 
-	  pos: null,
-	  props: null,
-	  body: null,
-	  cannon: null,
-	  name: null,
-	  health: null,
-	  player: null
+	var _stage = __webpack_require__(4);
 
-	};
+	var _stage2 = _interopRequireDefault(_stage);
 
-	Player.create = function create(props, pos, callback) {
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	  this.pos = pos;
-	  this.props = props;
+	var Player = {};
+
+	Player.create = function create() {
 
 	  this.createBody();
 	  this.createCannon();
 	  this.createName();
 	  this.createHealth();
 	  this.createPlayer();
-
-	  callback(this.player);
-
-	  return Object.create(this, {});
 	};
 
 	Player.createBody = function createBody() {
 
 	  this.body = new PIXI.Graphics();
 
-	  this.body.beginFill('0x' + this.props.color, 1);
+	  this.body.beginFill('0x' + this.color, 1);
 	  this.body.drawCircle(0, 0, 20);
 	};
 
@@ -564,7 +609,7 @@
 
 	  this.cannon = new PIXI.Graphics();
 
-	  this.cannon.beginFill('0x' + this.props.color, 1);
+	  this.cannon.beginFill('0x' + this.color, 1);
 	  this.cannon.drawRect(-2, 5, 6, -30);
 
 	  this.cannon.type = 'cannon';
@@ -572,7 +617,7 @@
 
 	Player.createName = function createName() {
 
-	  this.name = new PIXI.Text(this.props.username, {
+	  this.name = new PIXI.Text(this.username, {
 	    font: '14px Avenir Next Condensed',
 	    fill: 'white'
 	  });
@@ -583,7 +628,7 @@
 
 	Player.createHealth = function createHealth() {
 
-	  this.health = new PIXI.Text(this.props.health || 100, {
+	  this.health = new PIXI.Text(this.health || 100, {
 	    font: '14px Avenir Next Condensed',
 	    fill: 'black'
 	  });
@@ -598,10 +643,7 @@
 
 	  this.player = new PIXI.Container();
 
-	  this.player._id = this.props._id;
-
-	  this.player.x = this.props.position.x || this.pos.x;
-	  this.player.y = this.props.position.y || this.pos.y;
+	  this.player._id = this._id;
 
 	  this.player.type = 'player';
 
@@ -611,14 +653,14 @@
 	  this.player.addChild(this.health);
 	};
 
-	Player.remove = function remove(id, stage) {
+	Player.remove = function remove(id) {
 
-	  stage.children.forEach(function (child) {
+	  _stage2.default.children.forEach(function (child) {
 
 	    if (child._id === id && child.type === 'player') {
 
 	      child.removeChildren();
-	      stage.removeChild(child);
+	      _stage2.default.removeChild(child);
 	    }
 	  });
 	};
@@ -626,39 +668,34 @@
 	exports.default = Player;
 
 /***/ },
-/* 5 */
-/***/ function(module, exports) {
+/* 7 */
+/***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
-	var Bullet = {
 
-	  props: null,
-	  body: null,
-	  bullet: null
+	var _stage = __webpack_require__(4);
 
-	};
+	var _stage2 = _interopRequireDefault(_stage);
 
-	Bullet.create = function create(props, callback) {
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	  this.props = props;
+	var Bullet = {};
+
+	Bullet.create = function create() {
 
 	  this.createBody();
 	  this.createBullet();
-
-	  callback(this.bullet);
-
-	  return Object.create(this, {});
 	};
 
 	Bullet.createBody = function createBody() {
 
 	  this.body = new PIXI.Graphics();
 
-	  this.body.beginFill('0x' + this.props.color, 1);
+	  this.body.beginFill('0x' + this.color, 1);
 	  this.body.drawCircle(0, 0, 2);
 	};
 
@@ -666,30 +703,42 @@
 
 	  this.bullet = new PIXI.Container();
 
-	  this.bullet._id = this.props._id;
-	  this.bullet.user = this.props.user;
+	  this.bullet._id = this._id;
+	  this.bullet.user = this.user;
 
-	  this.bullet.x = this.props.position.x;
-	  this.bullet.y = this.props.position.y;
+	  this.bullet.x = this.position.x;
+	  this.bullet.y = this.position.y;
 
 	  this.bullet.type = 'bullet';
 
 	  this.bullet.direction = {
-	    x: this.props.direction.x,
-	    y: this.props.direction.y
+	    x: this.direction.x,
+	    y: this.direction.y
 	  };
 
 	  this.bullet.addChild(this.body);
 	};
 
-	Bullet.remove = function remove(id, stage) {
+	Bullet.remove = function remove(id) {
 
-	  stage.children.forEach(function (child) {
+	  _stage2.default.children.forEach(function (child) {
 
 	    if (child._id === id && child.type === 'bullet') {
 
 	      child.removeChildren();
-	      stage.removeChild(child);
+	      _stage2.default.removeChild(child);
+	    }
+	  });
+	};
+
+	Bullet.update = function update() {
+
+	  _stage2.default.children.forEach(function (object) {
+
+	    if (object.type === 'bullet') {
+
+	      object.x = object.x + object.direction.y;
+	      object.y = object.y - object.direction.x;
 	    }
 	  });
 	};
@@ -697,66 +746,80 @@
 	exports.default = Bullet;
 
 /***/ },
-/* 6 */
-/***/ function(module, exports) {
-
-	"use strict";
-
-	Object.defineProperty(exports, "__esModule", {
-	  value: true
-	});
-	exports.default = Position;
-	function Position(player, controls, renderer) {
-
-	  var speed = 7.5;
-
-	  var x = player.x;
-	  var y = player.y;
-
-	  if (controls.left) x -= speed;
-	  if (controls.up) y -= speed;
-	  if (controls.right) x += speed;
-	  if (controls.down) y += speed;
-
-	  if (x < 20) x = 20;
-	  if (y < 20) y = 20;
-
-	  if (x > renderer.width - 20) x = renderer.width - 20;
-	  if (y > renderer.height - 20) y = renderer.height - 20;
-
-	  var pos = {
-	    x: x,
-	    y: y
-	  };
-
-	  return pos;
-	};
-
-/***/ },
-/* 7 */
-/***/ function(module, exports) {
+/* 8 */
+/***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
-	var Collisions = {
+	exports.default = Position;
 
-	  player: null,
-	  stage: null,
-	  renderer: null,
-	  socket: null
+	var _renderer = __webpack_require__(3);
 
+	var _renderer2 = _interopRequireDefault(_renderer);
+
+	var _controls = __webpack_require__(5);
+
+	var _controls2 = _interopRequireDefault(_controls);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	function Position(player) {
+
+	  var speed = 7.5;
+
+	  var x = player.x;
+	  var y = player.y;
+
+	  if (_controls2.default.left) x -= speed;
+	  if (_controls2.default.up) y -= speed;
+	  if (_controls2.default.right) x += speed;
+	  if (_controls2.default.down) y += speed;
+
+	  if (x < 20) x = 20;
+	  if (y < 20) y = 20;
+
+	  if (x > _renderer2.default.width - 20) x = _renderer2.default.width - 20;
+	  if (y > _renderer2.default.height - 20) y = _renderer2.default.height - 20;
+
+	  var pos = { x: x, y: y };
+
+	  return pos;
+	}
+
+/***/ },
+/* 9 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+
+	var _renderer = __webpack_require__(3);
+
+	var _renderer2 = _interopRequireDefault(_renderer);
+
+	var _stage = __webpack_require__(4);
+
+	var _stage2 = _interopRequireDefault(_stage);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	var Collisions = {};
+
+	Collisions.init = function init() {
+
+	  Happens(this);
 	};
 
-	Collisions.run = function run(player, stage, renderer, socket) {
+	Collisions.run = function run(player) {
 	  var _this = this;
 
-	  this.renderer = renderer;
-	  this.socket = socket;
-
-	  stage.children.forEach(function (object) {
+	  _stage2.default.children.forEach(function (object) {
 
 	    if (object.type === 'bullet') {
 
@@ -789,7 +852,7 @@
 
 	Collisions.checkWallCollision = function checkWallCollision(params) {
 
-	  if (params.bx > this.renderer.width || params.by > this.renderer.height || params.bx < 0 || params.by < 0) {
+	  if (params.bx > _renderer2.default.width || params.by > _renderer2.default.height || params.bx < 0 || params.by < 0) {
 
 	    this.wallCollision(params.object);
 	  }
@@ -799,18 +862,14 @@
 
 	  console.log('--- PLAYER COLLISION ---');
 
-	  this.socket.emit('decreaseHealth', window.user._id);
-
-	  this.socket.emit('increaseHealth', object.user);
-
-	  this.socket.emit('removeBullet', object._id);
+	  this.emit('player:hit', object);
 	};
 
 	Collisions.wallCollision = function wallCollision(object) {
 
 	  console.log('--- WALL COLLISION ---');
 
-	  this.socket.emit('removeBullet', object._id);
+	  this.emit('wall:hit', object._id);
 	};
 
 	exports.default = Collisions;

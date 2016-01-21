@@ -1,26 +1,25 @@
-const Collisions = {
+import Renderer from 'app/components/renderer';
+import Stage from 'app/components/stage';
 
-  player: null,
-  stage: null,
-  renderer: null,
-  socket: null,
+const Collisions = {};
+
+Collisions.init = function init() {
+
+  Happens(this);
 
 };
 
-Collisions.run = function run(player, stage, renderer, socket) {
+Collisions.run = function run(player) {
 
-  this.renderer = renderer;
-  this.socket   = socket;
-
-  stage.children.forEach(object => {
+  Stage.children.forEach(object => {
 
     if (object.type === 'bullet') {
 
       const params = {
-        object: object,
-        px: player.x, 
-        py: player.y, 
-        bx: object.x, 
+        object,
+        px: player.x,
+        py: player.y,
+        bx: object.x,
         by: object.y,
       };
 
@@ -41,13 +40,13 @@ Collisions.run = function run(player, stage, renderer, socket) {
 };
 
 Collisions.checkPlayerCollision = function checkPlayerCollision(params) {
-  
-  if (params.bx > params.px - 20 && 
-      params.bx < params.px + 20 && 
-      params.by > params.py - 20 && 
+
+  if (params.bx > params.px - 20 &&
+      params.bx < params.px + 20 &&
+      params.by > params.py - 20 &&
       params.by < params.py + 20) {
 
-      this.playerCollision(params.object);
+    this.playerCollision(params.object);
 
   }
 
@@ -55,12 +54,12 @@ Collisions.checkPlayerCollision = function checkPlayerCollision(params) {
 
 Collisions.checkWallCollision = function checkWallCollision(params) {
 
-  if (params.bx > this.renderer.width  || 
-      params.by > this.renderer.height || 
-      params.bx < 0 || 
+  if (params.bx > Renderer.width ||
+      params.by > Renderer.height ||
+      params.bx < 0 ||
       params.by < 0) {
 
-      this.wallCollision(params.object);
+    this.wallCollision(params.object);
 
   }
 
@@ -70,11 +69,7 @@ Collisions.playerCollision = function playerCollision(object) {
 
   console.log('--- PLAYER COLLISION ---');
 
-  this.socket.emit('decreaseHealth', window.user._id);
-
-  this.socket.emit('increaseHealth', object.user);
-
-  this.socket.emit('removeBullet', object._id);
+  this.emit('player:hit', object);
 
 };
 
@@ -82,7 +77,7 @@ Collisions.wallCollision = function wallCollision(object) {
 
   console.log('--- WALL COLLISION ---');
 
-  this.socket.emit('removeBullet', object._id);
+  this.emit('wall:hit', object._id);
 
 };
 

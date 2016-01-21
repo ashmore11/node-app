@@ -1,16 +1,18 @@
 const Controls = {
 
-  $el   : null,
-  up    : false,
-  down  : false,
-  left  : false,
-  right : false,
-  x     : 0,
-  y     : 0,
+  $el: null,
+  up: false,
+  down: false,
+  left: false,
+  right: false,
+  x: 0,
+  y: 0,
 
 };
 
 Controls.init = function init(el) {
+
+  Happens(this);
 
   this.$el = el;
 
@@ -21,7 +23,8 @@ Controls.init = function init(el) {
 Controls.bind = function bind() {
 
   $(document).on('keydown keyup', this.getKeyEvents.bind(this));
-  $(document).on('mousemove', this.getPointerPos.bind(this));
+  $(document).on('mousemove', this.mousemove.bind(this));
+  $(document).on('mousedown', this.mousedown.bind(this));
 
 };
 
@@ -47,10 +50,16 @@ Controls.getKeyEvents = function getKeyEvents(event) {
 
 };
 
-Controls.getPointerPos = function getPointerPos(event) {
+Controls.mousemove = function mousemove(event) {
 
   this.x = event.pageX;
   this.y = event.pageY;
+
+};
+
+Controls.mousedown = function mousedown() {
+
+  this.emit('mousedown');
 
 };
 
@@ -62,32 +71,32 @@ Controls.getRotation = function getRotation(px, py) {
   const x = pageX - px;
   const y = pageY - py;
 
-  const angle    = Math.atan2(x, -y) * (180 / Math.PI);
+  const angle = Math.atan2(x, -y) * (180 / Math.PI);
   const rotation = angle * Math.PI / 180;
 
   return rotation;
 
 };
 
-Controls.fire = function fire(x, y, player) {
+Controls.fireBullet = function fire(player) {
 
   const px = player.x;
   const py = player.y;
 
-  const pageX = x - this.$el.offset().left;
-  const pageY = y - this.$el.offset().top;
+  const pageX = this.x - this.$el.offset().left;
+  const pageY = this.y - this.$el.offset().top;
 
-  const angle   = Math.atan2(pageX - px, - (pageY - py)) * (180 / Math.PI);
+  const angle = Math.atan2(pageX - px, - (pageY - py)) * (180 / Math.PI);
   const radians = angle * Math.PI / 180;
-  const speed   = 1000;
+  const speed = 1000;
 
   const params = {
-    user : window.User._id,
+    user: window.User._id,
     color: window.User.color,
-    x    : px,
-    y    : py,
-    vx   : Math.cos(radians) * speed / 60,
-    vy   : Math.sin(radians) * speed / 60,
+    x: px,
+    y: py,
+    vx: Math.cos(radians) * speed / 60,
+    vy: Math.sin(radians) * speed / 60,
   };
 
   return params;

@@ -3,11 +3,10 @@ import eslint from 'gulp-eslint';
 import config from '../config';
 
 gulp.task('lint', function () {
-  
-  return gulp.src(config.paths.scripts.watch)
 
-    .pipe(eslint({ extends: 'airbnb/base' }))
+  gulp.src(config.paths.scripts.watch)
+
+    .pipe(eslint(config.eslint))
     .pipe(eslint.format())
-    .pipe(eslint.failAfterError());
 
 });

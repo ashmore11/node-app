@@ -36,13 +36,13 @@ App.configure = function configure() {
 App.createServer = function createServer() {
 
   var server = Http.createServer(this.app);
-  
+
   server.listen(this.port, () => {
-  
+
     console.log(Chalk.cyan('Listening on http://localhost:' + this.port));
 
     Sockets.init(this.app, server);
-  
+
   });
 
 };

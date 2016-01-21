@@ -25,8 +25,8 @@ STATS.setMode = function setMode(mode) {
 STATS.setPosition = function setPosition(top, left) {
 
   this.stats.domElement.style.position = 'absolute';
-  this.stats.domElement.style.left     = `${left}px`;
-  this.stats.domElement.style.top      = `${top}px`;
+  this.stats.domElement.style.left = `${left}px`;
+  this.stats.domElement.style.top = `${top}px`;
 
 };
 

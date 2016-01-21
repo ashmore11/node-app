@@ -47787,6 +47787,99 @@ b));return c}function m(a){for(var b=c.children,d=0;d<b.length;d++)b[d].style.di
 A=b.children[0],B=b.children[1];c.appendChild(b);var g=0,w=Infinity,x=0,b=l("ms","#0f0","#020"),C=b.children[0],D=b.children[1];c.appendChild(b);if(self.performance&&self.performance.memory){var h=0,y=Infinity,z=0,b=l("mb","#f08","#201"),E=b.children[0],F=b.children[1];c.appendChild(b)}m(n);return{REVISION:14,domElement:c,setMode:m,begin:function(){k=q()},end:function(){var a=q();g=a-k;w=Math.min(w,g);x=Math.max(x,g);C.textContent=(g|0)+" MS ("+(w|0)+"-"+(x|0)+")";p(D,g/200);t++;if(a>r+1E3&&(d=Math.round(1E3*
 t/(a-r)),u=Math.min(u,d),v=Math.max(v,d),A.textContent=d+" FPS ("+u+"-"+v+")",p(B,d/100),r=a,t=0,void 0!==h)){var b=performance.memory.usedJSHeapSize,c=performance.memory.jsHeapSizeLimit;h=Math.round(9.54E-7*b);y=Math.min(y,h);z=Math.max(z,h);E.textContent=h+" MB ("+y+"-"+z+")";p(F,b/c)}return a},update:function(){k=this.end()}}};"object"===typeof module&&(module.exports=Stats);
 
+(function (global, factory) {
+  "object" === typeof exports ? module.exports = factory() :
+  "function" === typeof define && define.amd ? define(factory) :
+  global.Happens = factory();
+}(this, function () {
+
+  'use strict'
+
+  /**
+   * Module constructor
+   * @param  {Object} target Target object to extends methods and properties into
+   * @return {Object}        Target after with extended methods and properties
+   */
+  function Happens(target){
+    var nu = this instanceof Happens;
+    if(target){
+      if(!nu)
+        for(var prop in Happens.prototype)
+          target[prop] = Happens.prototype[prop];
+      else
+        throw new Error("You can't pass a target when instantiating with the `new` keyword");
+    }
+    else if(!nu)
+      return new Happens
+  };
+
+  /**
+   * Initializes event
+   * @param  {String} event Event name to initialize
+   * @return {Array}        Initialized event pool
+   */
+  Happens.prototype.__init = function(event) {
+    var tmp = this.__listeners || (this.__listeners = []);
+    return tmp[event] || (tmp[event] = []);
+  };
+
+  /**
+   * Adds listener
+   * @param  {String}   event Event name
+   * @param  {Function} fn    Event handler
+   */
+  Happens.prototype.on = function(event, fn) {
+    validate(fn);
+    this.__init(event).push(fn);
+  };
+
+  /**
+   * Removes listener
+   * @param  {String}   event Event name
+   * @param  {Function} fn    Event handler
+   */
+  Happens.prototype.off = function(event, fn) {
+    var pool = this.__init(event);
+    pool.splice(pool.indexOf(fn), 1);
+  };
+
+  /**
+   * Add listener the fires once and auto-removes itself
+   * @param  {String}   event Event name
+   * @param  {Function} fn    Event handler
+   */
+  Happens.prototype.once = function(event, fn) {
+    validate(fn);
+    var self = this, wrapper = function() {
+      self.off(event, wrapper);
+      fn.apply(this, arguments);
+    };
+    this.on(event, wrapper );
+  };
+
+  /**
+   * Emit some event
+   * @param  {String} event Event name -- subsequent params after `event` will
+   * be passed along to the event's handlers
+   */
+  Happens.prototype.emit = function(event /*, arg1, arg2 */ ) {
+    var i, pool = this.__init(event).slice(0);
+    for(i in pool)
+      pool[i].apply(this, [].slice.call(arguments, 1));
+  };
+
+  /**
+   * Validates if a function exists and is an instanceof Function, and throws
+   * an error if needed
+   * @param  {Function} fn Function to validate
+   */
+  function validate(fn) {
+    if(!(fn && fn instanceof Function))
+      throw new Error(fn + ' is not a Function');
+  }
+
+  return Happens;
+}));
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.io = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(_dereq_,module,exports){
 
 module.exports =  _dereq_('./lib/');

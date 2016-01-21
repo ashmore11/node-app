@@ -14,7 +14,7 @@ App.init = function init() {
 
   this.socket.on('connect', () => {
 
-    // console.log('socket connected');
+    console.log('socket connected');
 
   });
 
@@ -49,7 +49,7 @@ App.submitForm = function submitForm(event) {
 
   event.preventDefault();
 
-  const name  = event.target.text.value.toUpperCase();
+  const name = event.target.text.value.toUpperCase();
   const color = randomColor({ luminosity: 'light' }).split('#')[1];
 
   if ($('button').hasClass('disabled')) {

@@ -10,15 +10,15 @@ import livereload  from 'gulp-livereload';
 import config      from '../config';
 
 gulp.task('styles', function() {
-  
+
   gulp.src(config.paths.styles.source)
-    
+
     .pipe(stylus({
       set: ['include css'],
       use: [nib(), rupture(), jeet()],
       linenos: config.env.development,
     }))
-    
+
     .on('error', handleError)
 
     .pipe(gulpif(config.env.production, CSSmin()))

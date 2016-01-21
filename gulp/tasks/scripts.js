@@ -8,11 +8,11 @@ import handleError from '../util/handleError';
 import config      from '../config';
 
 gulp.task('scripts', function() {
-  
+
   gulp.src(config.paths.scripts.source)
 
     .pipe(webpack(config.webpack))
-    
+
     .on('error', handleError)
 
     .pipe(gulpif(config.env.production, uglify()))

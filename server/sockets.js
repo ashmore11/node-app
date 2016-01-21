@@ -11,7 +11,7 @@ var Sockets = {
 };
 
 Sockets.init = function init(app, server) {
-  
+
   this.app    = app;
   this.server = io.listen(server);
 
@@ -31,6 +31,7 @@ Sockets.connected = function connected(socket) {
 
 Sockets.bind = function bind() {
 
+  this.socket.on('sceneReady',     this.sceneReady.bind(this));
   this.socket.on('updateRotation', this.updateRotation.bind(this));
   this.socket.on('updatePosition', this.updatePosition.bind(this));
   this.socket.on('increaseHealth', this.increaseHealth.bind(this));
@@ -40,6 +41,16 @@ Sockets.bind = function bind() {
   this.socket.on('removeBullet',   this.removeBullet.bind(this));
   this.socket.on('removePlayer',   this.removePlayer.bind(this));
   this.socket.on('disconnect',     this.disconnected.bind(this));
+
+};
+
+Sockets.sceneReady = function sceneReady() {
+
+  Player.find({}, (err, players) => {
+
+    this.socket.emit('addPlayers', players);
+
+  });
 
 };
 
@@ -69,11 +80,7 @@ Sockets.createPlayer = function createPlayer(username, color, callback) {
 
       callback(null, doc);
 
-      Player.find({}, (err, players) => {
-
-        this.socket.emit('addPlayers', players);
-
-      });
+      this.socket.emit('playerCreated', doc);
 
     }
 
@@ -98,7 +105,7 @@ Sockets.updatePosition = function updatePosition(id, position) {
         this.socket.emit('updatePosition', id, position);
 
       }
-      
+
     }
 
   );
@@ -171,7 +178,7 @@ Sockets.increaseHealth = function increaseHealth(id) {
       if (err) {
 
         console.log(err);
-      
+
       } else {
 
         this.socket.emit('increaseHealth', id);
@@ -193,7 +200,7 @@ Sockets.decreaseHealth = function decreaseHealth(id) {
     (err, doc) => {
 
       if (err) console.log(err);
-      
+
     }
   );
 
