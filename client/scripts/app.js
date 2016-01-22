@@ -1,3 +1,4 @@
+import id from 'random-id';
 import Scene from './scene';
 
 const App = {
@@ -12,9 +13,9 @@ App.init = function init() {
 
   this.socket = io.connect('http://localhost:3000');
 
-  this.socket.on('connect', () => {
+  this.socket.on('connect', (something) => {
 
-    console.log('socket connected');
+    console.log('socket connected', something);
 
   });
 
@@ -60,23 +61,17 @@ App.submitForm = function submitForm(event) {
 
   }
 
-  this.socket.emit('createPlayer', name, color, (err, doc) => {
+  window.User = {
+    id: id(),
+    name: name,
+    color: color,
+  };
 
-    if (err) {
+  this.socket.emit('createPlayer', window.User.id, name, color);
 
-      alert('Username already exists, try again...');
+  TweenMax.to(this.$form, 0.25, { autoAlpha: 0 });
 
-    } else {
-
-      window.User = doc;
-
-      TweenMax.to(this.$form, 0.25, { autoAlpha: 0 });
-
-      Scene.start();
-
-    }
-
-  });
+  Scene.start();
 
 };
 

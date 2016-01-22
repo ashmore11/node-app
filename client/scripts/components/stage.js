@@ -1,10 +1,10 @@
 const Stage = new PIXI.Container();
 
-Stage.getObjectById = function getObjectById(id) {
+Stage.getChildById = function getChildById(id) {
 
   return Stage.children.filter(child => {
 
-    if (child._id === id) return child;
+    if (child.id === id) return child;
 
   })[0];
 

@@ -1,4 +1,6 @@
+import Renderer from 'app/components/renderer';
 import Stage from 'app/components/stage';
+import Controls from 'app/components/controls';
 
 const Player = {};
 
@@ -62,7 +64,7 @@ Player.createPlayer = function createPlayer() {
 
   this.player = new PIXI.Container();
 
-  this.player._id = this._id;
+  this.player.id = this.id;
 
   this.player.type = 'player';
 
@@ -73,11 +75,33 @@ Player.createPlayer = function createPlayer() {
 
 };
 
+Player.getPosition = function getPosition(player) {
+
+  const speed = 7;
+
+  let x = player.x;
+  let y = player.y;
+
+  if (Controls.up) y -= speed;
+  if (Controls.down) y += speed;
+  if (Controls.left) x -= speed;
+  if (Controls.right) x += speed;
+
+  if (x < 20) x = 20;
+  if (y < 20) y = 20;
+
+  if (x > Renderer.width - 20) x = Renderer.width - 20;
+  if (y > Renderer.height - 20) y = Renderer.height - 20;
+
+  return { x, y };
+
+};
+
 Player.remove = function remove(id) {
 
   Stage.children.forEach(child => {
 
-    if (child._id === id && child.type === 'player') {
+    if (child.id === id && child.type === 'player') {
 
       child.removeChildren();
       Stage.removeChild(child);

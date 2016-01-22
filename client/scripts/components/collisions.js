@@ -23,7 +23,7 @@ Collisions.run = function run(player) {
         by: object.y,
       };
 
-      if (object.user !== window.User._id) {
+      if (object.user !== window.User.id) {
 
         this.checkPlayerCollision(params);
 

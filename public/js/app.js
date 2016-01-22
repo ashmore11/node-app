@@ -46,7 +46,11 @@
 
 	'use strict';
 
-	var _scene = __webpack_require__(1);
+	var _randomId = __webpack_require__(1);
+
+	var _randomId2 = _interopRequireDefault(_randomId);
+
+	var _scene = __webpack_require__(2);
 
 	var _scene2 = _interopRequireDefault(_scene);
 
@@ -64,9 +68,9 @@
 
 	  this.socket = io.connect('http://localhost:3000');
 
-	  this.socket.on('connect', function () {
+	  this.socket.on('connect', function (something) {
 
-	    console.log('socket connected');
+	    console.log('socket connected', something);
 	  });
 
 	  _scene2.default.init(this.socket);
@@ -92,7 +96,6 @@
 	};
 
 	App.submitForm = function submitForm(event) {
-	  var _this = this;
 
 	  event.preventDefault();
 
@@ -106,20 +109,17 @@
 	    return;
 	  }
 
-	  this.socket.emit('createPlayer', name, color, function (err, doc) {
+	  window.User = {
+	    id: (0, _randomId2.default)(),
+	    name: name,
+	    color: color
+	  };
 
-	    if (err) {
+	  this.socket.emit('createPlayer', window.User.id, name, color);
 
-	      alert('Username already exists, try again...');
-	    } else {
+	  TweenMax.to(this.$form, 0.25, { autoAlpha: 0 });
 
-	      window.User = doc;
-
-	      TweenMax.to(_this.$form, 0.25, { autoAlpha: 0 });
-
-	      _scene2.default.start();
-	    }
-	  });
+	  _scene2.default.start();
 	};
 
 	App.init();
@@ -128,39 +128,76 @@
 /* 1 */
 /***/ function(module, exports, __webpack_require__) {
 
+	(function(){
+		var randomID = function(len,pattern){
+			var possibilities = ["abcdefghijklmnopqrstuvwxyz","ABCDEFGHIJKLMNOPQRSTUVWXYZ", "0123456789", "~!@#$%^&()_+-={}[];\',"];
+			var chars = "";
+
+			var pattern = pattern ? pattern : "aA0";
+			pattern.split('').forEach(function(a){
+				if(!isNaN(parseInt(a))){
+					chars += possibilities[2];
+				}else if(/[a-z]/.test(a)){
+					chars += possibilities[0];
+				}else if(/[A-Z]/.test(a)){
+					chars += possibilities[1];
+				}else{
+					chars += possibilities[3];
+				}
+			});
+			
+			var len = len ? len : 30;
+
+			var result = '';
+
+			while(len--){ 
+				result += chars.charAt(Math.floor(Math.random() * chars.length)); 
+			};
+
+			return result;
+		};
+
+		if(true){
+			module.exports = randomID;
+		} else {
+			window["randomID"] = randomID;
+		};
+
+	})();
+
+/***/ },
+/* 2 */
+/***/ function(module, exports, __webpack_require__) {
+
 	'use strict';
 
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
 
-	var _stats = __webpack_require__(2);
+	var _stats = __webpack_require__(3);
 
 	var _stats2 = _interopRequireDefault(_stats);
 
-	var _renderer = __webpack_require__(3);
+	var _renderer = __webpack_require__(4);
 
 	var _renderer2 = _interopRequireDefault(_renderer);
 
-	var _stage = __webpack_require__(4);
+	var _stage = __webpack_require__(5);
 
 	var _stage2 = _interopRequireDefault(_stage);
 
-	var _controls = __webpack_require__(5);
+	var _controls = __webpack_require__(6);
 
 	var _controls2 = _interopRequireDefault(_controls);
 
-	var _player = __webpack_require__(6);
+	var _player = __webpack_require__(7);
 
 	var _player2 = _interopRequireDefault(_player);
 
-	var _bullet = __webpack_require__(7);
+	var _bullet = __webpack_require__(8);
 
 	var _bullet2 = _interopRequireDefault(_bullet);
-
-	var _position = __webpack_require__(8);
-
-	var _position2 = _interopRequireDefault(_position);
 
 	var _collisions = __webpack_require__(9);
 
@@ -199,8 +236,6 @@
 
 	Scene.bind = function bind() {
 
-	  _controls2.default.on('mousedown', this.createBullet.bind(this));
-
 	  this.socket.on('addPlayers', this.addPlayers.bind(this));
 
 	  this.socket.on('playerCreated', this.addPlayer.bind(this));
@@ -208,13 +243,15 @@
 	    return _player2.default.remove(id);
 	  });
 
-	  this.socket.on('updatePosition', this.updateAllPositions.bind(this));
-	  this.socket.on('updateRotation', this.updateRotation.bind(this));
+	  this.socket.on('positionUpdated', this.updatePosition.bind(this));
+	  this.socket.on('rotationUpdated', this.updateRotation.bind(this));
 
 	  this.socket.on('bulletCreated', this.addBullets.bind(this));
 	  this.socket.on('bulletDestroyed', function (id) {
 	    return _bullet2.default.remove(id);
 	  });
+
+	  _controls2.default.on('mousedown', this.createBullet.bind(this));
 
 	  _collisions2.default.on('player:hit', this.playerCollision.bind(this));
 	  _collisions2.default.on('wall:hit', this.wallCollision.bind(this));
@@ -224,21 +261,22 @@
 
 	  arr.forEach(function (obj) {
 
+	    if (obj.id === window.User.id) return;
+
 	    var newPlayer = Object.assign(Object.create(_player2.default), obj);
 
 	    newPlayer.create();
 
-	    var x = newPlayer.position.x || _renderer2.default.width / 2;
-	    var y = newPlayer.position.y || _renderer2.default.height / 2;
-
-	    newPlayer.player.x = x;
-	    newPlayer.player.y = y;
+	    newPlayer.player.x = newPlayer.position.x;
+	    newPlayer.player.y = newPlayer.position.y;
 
 	    _stage2.default.addChild(newPlayer.player);
 	  });
 	};
 
 	Scene.addPlayer = function addPlayer(obj) {
+
+	  console.log(obj);
 
 	  var newPlayer = Object.assign(Object.create(_player2.default), obj);
 
@@ -250,24 +288,31 @@
 	  _stage2.default.addChild(newPlayer.player);
 	};
 
-	Scene.updatePosition = function updatePosition() {
+	Scene.emitPosition = function emitPosition() {
 
-	  var pos = (0, _position2.default)(this.player);
+	  var pos = _player2.default.getPosition(this.player);
 
-	  this.socket.emit('updatePosition', window.User._id, pos);
+	  this.socket.emit('updatePosition', window.User.id, pos);
 	};
 
-	Scene.updateAllPositions = function updateAllPositions(id, pos) {
+	Scene.updatePosition = function updatePosition(id, position) {
 
-	  var player = _stage2.default.getObjectById(id);
+	  var player = _stage2.default.getChildById(id);
 
-	  player.x = pos.x;
-	  player.y = pos.y;
+	  player.x = position.x;
+	  player.y = position.y;
+	};
+
+	Scene.emitRotation = function emitRotation() {
+
+	  var rotation = _controls2.default.getRotation(this.player.x, this.player.y);
+
+	  this.socket.emit('updateRotation', window.User.id, rotation);
 	};
 
 	Scene.updateRotation = function updateRotation(id, rotation) {
 
-	  var player = _stage2.default.getObjectById(id);
+	  var player = _stage2.default.getChildById(id);
 
 	  player.children.forEach(function (child) {
 
@@ -280,11 +325,11 @@
 
 	Scene.playerCollision = function playerCollision(object) {
 
-	  this.socket.emit('decreaseHealth', window.user._id);
+	  this.socket.emit('decreaseHealth', window.user.id);
 
 	  this.socket.emit('increaseHealth', object.user);
 
-	  this.socket.emit('removeBullet', object._id);
+	  this.socket.emit('removeBullet', object.id);
 	};
 
 	Scene.createBullet = function createBullet() {
@@ -330,31 +375,28 @@
 
 	Scene.removeDeadPlayers = function removeDeadPlayers() {
 
-	  if (window.User.health <= 0) {
+	  if (window.UserHealth <= 0) {
 
-	    this.socket.emit('removePlayer', window.User._id);
+	    this.socket.emit('removePlayer', window.User.id);
 	  }
 	};
 
 	Scene.update = function update() {
 
-	  this.player = _stage2.default.getObjectById(window.User._id);
+	  this.player = _stage2.default.getChildById(window.User.id);
 
 	  if (!this.player) return;
 
-	  var rotation = _controls2.default.getRotation(this.player.x, this.player.y);
+	  _collisions2.default.run(this.player);
 
-	  this.socket.emit('updateRotation', window.User._id, rotation);
-
-	  this.updatePosition();
+	  this.emitPosition();
+	  this.emitRotation();
 
 	  _bullet2.default.update();
 
+	  // this.removeDeadPlayers();
+
 	  // this.updateHealth();
-
-	  _collisions2.default.run(this.player, _stage2.default, _renderer2.default, this.socket);
-
-	  this.removeDeadPlayers();
 	};
 
 	Scene.animate = function animate() {
@@ -373,7 +415,7 @@
 	exports.default = Scene;
 
 /***/ },
-/* 2 */
+/* 3 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -423,7 +465,7 @@
 	exports.default = STATS;
 
 /***/ },
-/* 3 */
+/* 4 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -443,7 +485,7 @@
 	exports.default = Renderer;
 
 /***/ },
-/* 4 */
+/* 5 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -453,18 +495,18 @@
 	});
 	var Stage = new PIXI.Container();
 
-	Stage.getObjectById = function getObjectById(id) {
+	Stage.getChildById = function getChildById(id) {
 
 	  return Stage.children.filter(function (child) {
 
-	    if (child._id === id) return child;
+	    if (child.id === id) return child;
 	  })[0];
 	};
 
 	exports.default = Stage;
 
 /***/ },
-/* 5 */
+/* 6 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -557,7 +599,7 @@
 	  var speed = 1000;
 
 	  var params = {
-	    user: window.User._id,
+	    user: window.User.id,
 	    color: window.User.color,
 	    x: px,
 	    y: py,
@@ -571,7 +613,7 @@
 	exports.default = Controls;
 
 /***/ },
-/* 6 */
+/* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -580,9 +622,17 @@
 	  value: true
 	});
 
-	var _stage = __webpack_require__(4);
+	var _renderer = __webpack_require__(4);
+
+	var _renderer2 = _interopRequireDefault(_renderer);
+
+	var _stage = __webpack_require__(5);
 
 	var _stage2 = _interopRequireDefault(_stage);
+
+	var _controls = __webpack_require__(6);
+
+	var _controls2 = _interopRequireDefault(_controls);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -643,7 +693,7 @@
 
 	  this.player = new PIXI.Container();
 
-	  this.player._id = this._id;
+	  this.player.id = this.id;
 
 	  this.player.type = 'player';
 
@@ -653,11 +703,32 @@
 	  this.player.addChild(this.health);
 	};
 
+	Player.getPosition = function getPosition(player) {
+
+	  var speed = 7;
+
+	  var x = player.x;
+	  var y = player.y;
+
+	  if (_controls2.default.up) y -= speed;
+	  if (_controls2.default.down) y += speed;
+	  if (_controls2.default.left) x -= speed;
+	  if (_controls2.default.right) x += speed;
+
+	  if (x < 20) x = 20;
+	  if (y < 20) y = 20;
+
+	  if (x > _renderer2.default.width - 20) x = _renderer2.default.width - 20;
+	  if (y > _renderer2.default.height - 20) y = _renderer2.default.height - 20;
+
+	  return { x: x, y: y };
+	};
+
 	Player.remove = function remove(id) {
 
 	  _stage2.default.children.forEach(function (child) {
 
-	    if (child._id === id && child.type === 'player') {
+	    if (child.id === id && child.type === 'player') {
 
 	      child.removeChildren();
 	      _stage2.default.removeChild(child);
@@ -668,7 +739,7 @@
 	exports.default = Player;
 
 /***/ },
-/* 7 */
+/* 8 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -677,7 +748,7 @@
 	  value: true
 	});
 
-	var _stage = __webpack_require__(4);
+	var _stage = __webpack_require__(5);
 
 	var _stage2 = _interopRequireDefault(_stage);
 
@@ -746,50 +817,6 @@
 	exports.default = Bullet;
 
 /***/ },
-/* 8 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	Object.defineProperty(exports, "__esModule", {
-	  value: true
-	});
-	exports.default = Position;
-
-	var _renderer = __webpack_require__(3);
-
-	var _renderer2 = _interopRequireDefault(_renderer);
-
-	var _controls = __webpack_require__(5);
-
-	var _controls2 = _interopRequireDefault(_controls);
-
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-	function Position(player) {
-
-	  var speed = 7.5;
-
-	  var x = player.x;
-	  var y = player.y;
-
-	  if (_controls2.default.left) x -= speed;
-	  if (_controls2.default.up) y -= speed;
-	  if (_controls2.default.right) x += speed;
-	  if (_controls2.default.down) y += speed;
-
-	  if (x < 20) x = 20;
-	  if (y < 20) y = 20;
-
-	  if (x > _renderer2.default.width - 20) x = _renderer2.default.width - 20;
-	  if (y > _renderer2.default.height - 20) y = _renderer2.default.height - 20;
-
-	  var pos = { x: x, y: y };
-
-	  return pos;
-	}
-
-/***/ },
 /* 9 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -799,11 +826,11 @@
 	  value: true
 	});
 
-	var _renderer = __webpack_require__(3);
+	var _renderer = __webpack_require__(4);
 
 	var _renderer2 = _interopRequireDefault(_renderer);
 
-	var _stage = __webpack_require__(4);
+	var _stage = __webpack_require__(5);
 
 	var _stage2 = _interopRequireDefault(_stage);
 
@@ -831,7 +858,7 @@
 	        by: object.y
 	      };
 
-	      if (object.user !== window.User._id) {
+	      if (object.user !== window.User.id) {
 
 	        _this.checkPlayerCollision(params);
 	      } else {

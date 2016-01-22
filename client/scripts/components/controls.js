@@ -91,7 +91,7 @@ Controls.fireBullet = function fire(player) {
   const speed = 1000;
 
   const params = {
-    user: window.User._id,
+    user: window.User.id,
     color: window.User.color,
     x: px,
     y: py,
