@@ -1,3 +1,4 @@
+import User from 'app/components/user';
 import Renderer from 'app/components/renderer';
 import Stage from 'app/components/stage';
 
@@ -23,7 +24,7 @@ Collisions.run = function run(player) {
         by: object.y,
       };
 
-      if (object.user !== window.User.id) {
+      if (object.user !== User.id) {
 
         this.checkPlayerCollision(params);
 

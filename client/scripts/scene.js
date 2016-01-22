@@ -1,3 +1,4 @@
+import User from 'app/components/user';
 import Stats from 'app/utils/stats';
 import Renderer from 'app/components/renderer';
 import Stage from 'app/components/stage';
@@ -50,10 +51,10 @@ Scene.bind = function bind() {
   this.socket.on('bulletCreated', this.addBullets.bind(this));
   this.socket.on('bulletDestroyed', id => Bullet.remove(id));
 
-  Controls.on('mousedown', this.createBullet.bind(this));
-
   Collisions.on('player:hit', this.playerCollision.bind(this));
   Collisions.on('wall:hit', this.wallCollision.bind(this));
+
+  Controls.on('mousedown', this.createBullet.bind(this));
 
 };
 
@@ -61,7 +62,7 @@ Scene.addPlayers = function addPlayers(arr) {
 
   arr.forEach(obj => {
 
-    if (obj.id === window.User.id) return;
+    if (obj.id === User.id) return;
 
     const newPlayer = Object.assign(Object.create(Player), obj);
 
@@ -78,7 +79,7 @@ Scene.addPlayers = function addPlayers(arr) {
 
 Scene.addPlayer = function addPlayer(obj) {
 
-  console.log(obj);
+  console.log('newPlayer');
 
   const newPlayer = Object.assign(Object.create(Player), obj);
 
@@ -95,7 +96,7 @@ Scene.emitPosition = function emitPosition() {
 
   const pos = Player.getPosition(this.player);
 
-  this.socket.emit('updatePosition', window.User.id, pos);
+  this.socket.emit('updatePosition', User.id, pos);
 
 };
 
@@ -112,7 +113,7 @@ Scene.emitRotation = function emitRotation() {
 
   const rotation = Controls.getRotation(this.player.x, this.player.y);
 
-  this.socket.emit('updateRotation', window.User.id, rotation);
+  this.socket.emit('updateRotation', User.id, rotation);
 
 };
 
@@ -134,7 +135,7 @@ Scene.updateRotation = function updateRotation(id, rotation) {
 
 Scene.playerCollision = function playerCollision(object) {
 
-  this.socket.emit('decreaseHealth', window.user.id);
+  this.socket.emit('decreaseHealth', User.id);
 
   this.socket.emit('increaseHealth', object.user);
 
@@ -193,9 +194,9 @@ Scene.updateHealth = function updateHealth() {
 
 Scene.removeDeadPlayers = function removeDeadPlayers() {
 
-  if (window.UserHealth <= 0) {
+  if (User.health <= 0) {
 
-    this.socket.emit('removePlayer', window.User.id);
+    this.socket.emit('removePlayer', User.id);
 
   }
 
@@ -203,7 +204,7 @@ Scene.removeDeadPlayers = function removeDeadPlayers() {
 
 Scene.update = function update() {
 
-  this.player = Stage.getChildById(window.User.id);
+  this.player = Stage.getChildById(User.id);
 
   if (!this.player) return;
 

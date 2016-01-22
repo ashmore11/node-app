@@ -1,4 +1,5 @@
-import id from 'random-id';
+import randomID from 'random-id';
+import User from 'app/components/user';
 import Scene from './scene';
 
 const App = {
@@ -12,12 +13,6 @@ const App = {
 App.init = function init() {
 
   this.socket = io.connect('http://localhost:3000');
-
-  this.socket.on('connect', (something) => {
-
-    console.log('socket connected', something);
-
-  });
 
   Scene.init(this.socket);
 
@@ -50,8 +45,11 @@ App.submitForm = function submitForm(event) {
 
   event.preventDefault();
 
-  const name = event.target.text.value.toUpperCase();
-  const color = randomColor({ luminosity: 'light' }).split('#')[1];
+  User.setProps({
+    id: randomID(),
+    name: event.target.text.value.toUpperCase(),
+    color: randomColor({ luminosity: 'light' }).split('#')[1],
+  });
 
   if ($('button').hasClass('disabled')) {
 
@@ -61,17 +59,17 @@ App.submitForm = function submitForm(event) {
 
   }
 
-  window.User = {
-    id: id(),
-    name: name,
-    color: color,
-  };
+  this.socket.emit('createPlayer', User, err => {
 
-  this.socket.emit('createPlayer', window.User.id, name, color);
+    if (!err) {
 
-  TweenMax.to(this.$form, 0.25, { autoAlpha: 0 });
+      TweenMax.to(this.$form, 0.25, { autoAlpha: 0 });
 
-  Scene.start();
+      Scene.start();
+
+    }
+
+  });
 
 };
 

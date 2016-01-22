@@ -1,3 +1,5 @@
+import User from 'app/components/user';
+
 const Controls = {
 
   $el: null,
@@ -91,8 +93,8 @@ Controls.fireBullet = function fire(player) {
   const speed = 1000;
 
   const params = {
-    user: window.User.id,
-    color: window.User.color,
+    user: User.id,
+    color: User.color,
     x: px,
     y: py,
     vx: Math.cos(radians) * speed / 60,

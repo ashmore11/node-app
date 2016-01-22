@@ -50,7 +50,11 @@
 
 	var _randomId2 = _interopRequireDefault(_randomId);
 
-	var _scene = __webpack_require__(2);
+	var _user = __webpack_require__(2);
+
+	var _user2 = _interopRequireDefault(_user);
+
+	var _scene = __webpack_require__(3);
 
 	var _scene2 = _interopRequireDefault(_scene);
 
@@ -67,11 +71,6 @@
 	App.init = function init() {
 
 	  this.socket = io.connect('http://localhost:3000');
-
-	  this.socket.on('connect', function (something) {
-
-	    console.log('socket connected', something);
-	  });
 
 	  _scene2.default.init(this.socket);
 
@@ -96,11 +95,15 @@
 	};
 
 	App.submitForm = function submitForm(event) {
+	  var _this = this;
 
 	  event.preventDefault();
 
-	  var name = event.target.text.value.toUpperCase();
-	  var color = randomColor({ luminosity: 'light' }).split('#')[1];
+	  _user2.default.setProps({
+	    id: (0, _randomId2.default)(),
+	    name: event.target.text.value.toUpperCase(),
+	    color: randomColor({ luminosity: 'light' }).split('#')[1]
+	  });
 
 	  if ($('button').hasClass('disabled')) {
 
@@ -109,17 +112,15 @@
 	    return;
 	  }
 
-	  window.User = {
-	    id: (0, _randomId2.default)(),
-	    name: name,
-	    color: color
-	  };
+	  this.socket.emit('createPlayer', _user2.default, function (err) {
 
-	  this.socket.emit('createPlayer', window.User.id, name, color);
+	    if (!err) {
 
-	  TweenMax.to(this.$form, 0.25, { autoAlpha: 0 });
+	      TweenMax.to(_this.$form, 0.25, { autoAlpha: 0 });
 
-	  _scene2.default.start();
+	      _scene2.default.start();
+	    }
+	  });
 	};
 
 	App.init();
@@ -167,6 +168,34 @@
 
 /***/ },
 /* 2 */
+/***/ function(module, exports) {
+
+	"use strict";
+
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	var User = {
+
+	  id: null,
+	  name: null,
+	  color: null
+
+	};
+
+	User.setProps = function setProps(obj) {
+	  var _this = this;
+
+	  Object.keys(obj).forEach(function (key) {
+
+	    _this[key] = obj[key];
+	  });
+	};
+
+	exports.default = User;
+
+/***/ },
+/* 3 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -175,31 +204,35 @@
 	  value: true
 	});
 
-	var _stats = __webpack_require__(3);
+	var _user = __webpack_require__(2);
+
+	var _user2 = _interopRequireDefault(_user);
+
+	var _stats = __webpack_require__(4);
 
 	var _stats2 = _interopRequireDefault(_stats);
 
-	var _renderer = __webpack_require__(4);
+	var _renderer = __webpack_require__(5);
 
 	var _renderer2 = _interopRequireDefault(_renderer);
 
-	var _stage = __webpack_require__(5);
+	var _stage = __webpack_require__(6);
 
 	var _stage2 = _interopRequireDefault(_stage);
 
-	var _controls = __webpack_require__(6);
+	var _controls = __webpack_require__(7);
 
 	var _controls2 = _interopRequireDefault(_controls);
 
-	var _player = __webpack_require__(7);
+	var _player = __webpack_require__(8);
 
 	var _player2 = _interopRequireDefault(_player);
 
-	var _bullet = __webpack_require__(8);
+	var _bullet = __webpack_require__(9);
 
 	var _bullet2 = _interopRequireDefault(_bullet);
 
-	var _collisions = __webpack_require__(9);
+	var _collisions = __webpack_require__(10);
 
 	var _collisions2 = _interopRequireDefault(_collisions);
 
@@ -251,17 +284,17 @@
 	    return _bullet2.default.remove(id);
 	  });
 
-	  _controls2.default.on('mousedown', this.createBullet.bind(this));
-
 	  _collisions2.default.on('player:hit', this.playerCollision.bind(this));
 	  _collisions2.default.on('wall:hit', this.wallCollision.bind(this));
+
+	  _controls2.default.on('mousedown', this.createBullet.bind(this));
 	};
 
 	Scene.addPlayers = function addPlayers(arr) {
 
 	  arr.forEach(function (obj) {
 
-	    if (obj.id === window.User.id) return;
+	    if (obj.id === _user2.default.id) return;
 
 	    var newPlayer = Object.assign(Object.create(_player2.default), obj);
 
@@ -276,7 +309,7 @@
 
 	Scene.addPlayer = function addPlayer(obj) {
 
-	  console.log(obj);
+	  console.log('newPlayer');
 
 	  var newPlayer = Object.assign(Object.create(_player2.default), obj);
 
@@ -292,7 +325,7 @@
 
 	  var pos = _player2.default.getPosition(this.player);
 
-	  this.socket.emit('updatePosition', window.User.id, pos);
+	  this.socket.emit('updatePosition', _user2.default.id, pos);
 	};
 
 	Scene.updatePosition = function updatePosition(id, position) {
@@ -307,7 +340,7 @@
 
 	  var rotation = _controls2.default.getRotation(this.player.x, this.player.y);
 
-	  this.socket.emit('updateRotation', window.User.id, rotation);
+	  this.socket.emit('updateRotation', _user2.default.id, rotation);
 	};
 
 	Scene.updateRotation = function updateRotation(id, rotation) {
@@ -325,7 +358,7 @@
 
 	Scene.playerCollision = function playerCollision(object) {
 
-	  this.socket.emit('decreaseHealth', window.user.id);
+	  this.socket.emit('decreaseHealth', _user2.default.id);
 
 	  this.socket.emit('increaseHealth', object.user);
 
@@ -375,15 +408,15 @@
 
 	Scene.removeDeadPlayers = function removeDeadPlayers() {
 
-	  if (window.UserHealth <= 0) {
+	  if (_user2.default.health <= 0) {
 
-	    this.socket.emit('removePlayer', window.User.id);
+	    this.socket.emit('removePlayer', _user2.default.id);
 	  }
 	};
 
 	Scene.update = function update() {
 
-	  this.player = _stage2.default.getChildById(window.User.id);
+	  this.player = _stage2.default.getChildById(_user2.default.id);
 
 	  if (!this.player) return;
 
@@ -415,7 +448,7 @@
 	exports.default = Scene;
 
 /***/ },
-/* 3 */
+/* 4 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -465,7 +498,7 @@
 	exports.default = STATS;
 
 /***/ },
-/* 4 */
+/* 5 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -485,7 +518,7 @@
 	exports.default = Renderer;
 
 /***/ },
-/* 5 */
+/* 6 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -506,14 +539,21 @@
 	exports.default = Stage;
 
 /***/ },
-/* 6 */
-/***/ function(module, exports) {
+/* 7 */
+/***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
+
+	var _user = __webpack_require__(2);
+
+	var _user2 = _interopRequireDefault(_user);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 	var Controls = {
 
 	  $el: null,
@@ -599,8 +639,8 @@
 	  var speed = 1000;
 
 	  var params = {
-	    user: window.User.id,
-	    color: window.User.color,
+	    user: _user2.default.id,
+	    color: _user2.default.color,
 	    x: px,
 	    y: py,
 	    vx: Math.cos(radians) * speed / 60,
@@ -613,7 +653,7 @@
 	exports.default = Controls;
 
 /***/ },
-/* 7 */
+/* 8 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -622,15 +662,15 @@
 	  value: true
 	});
 
-	var _renderer = __webpack_require__(4);
+	var _renderer = __webpack_require__(5);
 
 	var _renderer2 = _interopRequireDefault(_renderer);
 
-	var _stage = __webpack_require__(5);
+	var _stage = __webpack_require__(6);
 
 	var _stage2 = _interopRequireDefault(_stage);
 
-	var _controls = __webpack_require__(6);
+	var _controls = __webpack_require__(7);
 
 	var _controls2 = _interopRequireDefault(_controls);
 
@@ -739,7 +779,7 @@
 	exports.default = Player;
 
 /***/ },
-/* 8 */
+/* 9 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -748,7 +788,7 @@
 	  value: true
 	});
 
-	var _stage = __webpack_require__(5);
+	var _stage = __webpack_require__(6);
 
 	var _stage2 = _interopRequireDefault(_stage);
 
@@ -817,7 +857,7 @@
 	exports.default = Bullet;
 
 /***/ },
-/* 9 */
+/* 10 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -826,11 +866,15 @@
 	  value: true
 	});
 
-	var _renderer = __webpack_require__(4);
+	var _user = __webpack_require__(2);
+
+	var _user2 = _interopRequireDefault(_user);
+
+	var _renderer = __webpack_require__(5);
 
 	var _renderer2 = _interopRequireDefault(_renderer);
 
-	var _stage = __webpack_require__(5);
+	var _stage = __webpack_require__(6);
 
 	var _stage2 = _interopRequireDefault(_stage);
 
@@ -858,7 +902,7 @@
 	        by: object.y
 	      };
 
-	      if (object.user !== window.User.id) {
+	      if (object.user !== _user2.default.id) {
 
 	        _this.checkPlayerCollision(params);
 	      } else {

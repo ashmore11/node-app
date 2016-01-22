@@ -32,14 +32,14 @@ Sockets.connected = function connected(socket) {
 Sockets.bind = function bind() {
 
   this.socket.on('sceneReady',     this.sceneReady.bind(this));
-  this.socket.on('updateRotation', this.updateRotation.bind(this));
-  this.socket.on('updatePosition', this.updatePosition.bind(this));
-  this.socket.on('increaseHealth', this.increaseHealth.bind(this));
-  this.socket.on('decreaseHealth', this.decreaseHealth.bind(this));
   this.socket.on('createPlayer',   this.createPlayer.bind(this));
   this.socket.on('createBullet',   this.createBullet.bind(this));
+  this.socket.on('updateRotation', this.updateRotation.bind(this));
+  this.socket.on('updatePosition', this.updatePosition.bind(this));
   this.socket.on('removeBullet',   this.removeBullet.bind(this));
   this.socket.on('removePlayer',   this.removePlayer.bind(this));
+  this.socket.on('increaseHealth', this.increaseHealth.bind(this));
+  this.socket.on('decreaseHealth', this.decreaseHealth.bind(this));
   this.socket.on('disconnect',     this.disconnected.bind(this));
 
 };
@@ -54,16 +54,14 @@ Sockets.sceneReady = function sceneReady() {
 
 };
 
-Sockets.createPlayer = function createPlayer(id, username, color) {
-
-  console.log(id, username, color);
+Sockets.createPlayer = function createPlayer(user, callback) {
 
   console.log(Chalk.green('Create Player'));
 
   var player = Player({
-    id: id,
-    username: username,
-    color: color,
+    id: user.id,
+    username: user.name,
+    color: user.color,
     position : {
       x: 0,
       y: 0,
@@ -75,7 +73,17 @@ Sockets.createPlayer = function createPlayer(id, username, color) {
 
   player.save((err, doc) => {
 
-    if (!err) this.socket.emit('playerCreated', doc);
+    if (err) {
+
+      callback(err);
+
+    } else {
+
+      this.socket.emit('playerCreated', doc);
+
+      callback();
+
+    }
 
   });
 
