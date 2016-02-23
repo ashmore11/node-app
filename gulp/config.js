@@ -16,6 +16,9 @@ export default {
 			destination: './public/js/',
 			filename: 'vendor.js',
 		},
+    server: {
+      watch: './server/**/*.js',
+    },
 		scripts: {
 			source: './client/scripts/app.js',
 			watch: './client/scripts/**/*.js',

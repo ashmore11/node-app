@@ -64,63 +64,58 @@
 
 	  socket: null,
 	  $input: $('input'),
-	  $form: $('form')
+	  $form: $('form'),
 
-	};
+	  init: function init() {
 
-	App.init = function init() {
+	    this.socket = io.connect('http://localhost:3000');
 
-	  this.socket = io.connect('http://localhost:3000');
+	    _scene2.default.init(this.socket);
 
-	  _scene2.default.init(this.socket);
+	    this.bind();
+	  },
 
-	  this.bind();
-	};
+	  bind: function bind() {
 
-	App.bind = function bind() {
+	    this.$input.on('keyup', this.checkInput.bind(this));
+	    this.$form.on('submit', this.submitForm.bind(this));
+	  },
 
-	  this.$input.on('keyup', this.checkInput.bind(this));
-	  this.$form.on('submit', this.submitForm.bind(this));
-	};
+	  checkInput: function checkInput() {
 
-	App.checkInput = function checkInput() {
+	    if ($('input').val().length >= 3) {
 
-	  if ($('input').val().length >= 3) {
+	      $('button').removeClass('disabled');
+	    } else {
 
-	    $('button').removeClass('disabled');
-	  } else {
-
-	    $('button').addClass('disabled');
-	  }
-	};
-
-	App.submitForm = function submitForm(event) {
-	  var _this = this;
-
-	  event.preventDefault();
-
-	  _user2.default.setProps({
-	    id: (0, _randomId2.default)(),
-	    name: event.target.text.value.toUpperCase(),
-	    color: randomColor({ luminosity: 'light' }).split('#')[1]
-	  });
-
-	  if ($('button').hasClass('disabled')) {
-
-	    alert('Your username must be at least 3 characters...');
-
-	    return;
-	  }
-
-	  this.socket.emit('createPlayer', _user2.default, function (err) {
-
-	    if (!err) {
-
-	      TweenMax.to(_this.$form, 0.25, { autoAlpha: 0 });
-
-	      _scene2.default.start();
+	      $('button').addClass('disabled');
 	    }
-	  });
+	  },
+
+	  submitForm: function submitForm(event) {
+
+	    event.preventDefault();
+
+	    _user2.default.setProps({
+	      id: (0, _randomId2.default)(),
+	      name: event.target.text.value.toUpperCase(),
+	      color: randomColor({ luminosity: 'light' }).split('#')[1]
+	    });
+
+	    if ($('button').hasClass('disabled')) {
+
+	      alert('Your username must be at least 3 characters...');
+
+	      return;
+	    }
+
+	    this.socket.emit('createPlayer', _user2.default);
+
+	    TweenMax.to(this.$form, 0.25, { autoAlpha: 0 });
+
+	    _scene2.default.start();
+	  }
+
 	};
 
 	App.init();
@@ -179,17 +174,17 @@
 
 	  id: null,
 	  name: null,
-	  color: null
+	  color: null,
 
-	};
+	  setProps: function setProps(obj) {
+	    var _this = this;
 
-	User.setProps = function setProps(obj) {
-	  var _this = this;
+	    Object.keys(obj).forEach(function (key) {
 
-	  Object.keys(obj).forEach(function (key) {
+	      _this[key] = obj[key];
+	    });
+	  }
 
-	    _this[key] = obj[key];
-	  });
 	};
 
 	exports.default = User;
@@ -240,209 +235,210 @@
 
 	var Scene = {
 
-	  $el: $('#scene'),
-	  socket: null
+	  $el: null,
+	  socket: null,
 
-	};
+	  init: function init(socket) {
 
-	Scene.init = function init(socket) {
+	    this.$el = $('#scene');
+	    this.socket = socket;
 
-	  this.socket = socket;
+	    this.$el.append(_renderer2.default.view);
 
-	  this.$el.append(_renderer2.default.view);
+	    _collisions2.default.init();
+	  },
 
-	  _collisions2.default.init();
-	};
+	  start: function start() {
 
-	Scene.start = function start() {
+	    this.socket.emit('sceneReady');
 
-	  this.socket.emit('sceneReady');
+	    _controls2.default.init(this.$el);
 
-	  _controls2.default.init(this.$el);
+	    _stats2.default.init(this.$el, 0, 0, 0);
 
-	  _stats2.default.init(this.$el, 0, 0, 0);
+	    this.animate();
 
-	  this.animate();
+	    this.bind();
+	  },
 
-	  this.bind();
-	};
+	  bind: function bind() {
 
-	Scene.bind = function bind() {
+	    this.socket.on('addPlayers', this.addPlayers.bind(this));
 
-	  this.socket.on('addPlayers', this.addPlayers.bind(this));
+	    this.socket.on('playerCreated', this.addPlayer.bind(this));
+	    this.socket.on('playerDestroyed', function (id) {
+	      return _player2.default.remove(id);
+	    });
 
-	  this.socket.on('playerCreated', this.addPlayer.bind(this));
-	  this.socket.on('playerDestroyed', function (id) {
-	    return _player2.default.remove(id);
-	  });
+	    this.socket.on('positionUpdated', this.updatePosition.bind(this));
+	    this.socket.on('rotationUpdated', this.updateRotation.bind(this));
 
-	  this.socket.on('positionUpdated', this.updatePosition.bind(this));
-	  this.socket.on('rotationUpdated', this.updateRotation.bind(this));
+	    this.socket.on('bulletCreated', this.addBullets.bind(this));
+	    this.socket.on('bulletDestroyed', function (id) {
+	      return _bullet2.default.remove(id);
+	    });
 
-	  this.socket.on('bulletCreated', this.addBullets.bind(this));
-	  this.socket.on('bulletDestroyed', function (id) {
-	    return _bullet2.default.remove(id);
-	  });
+	    _collisions2.default.on('player:hit', this.playerCollision.bind(this));
+	    _collisions2.default.on('wall:hit', this.wallCollision.bind(this));
 
-	  _collisions2.default.on('player:hit', this.playerCollision.bind(this));
-	  _collisions2.default.on('wall:hit', this.wallCollision.bind(this));
+	    _controls2.default.on('mousedown', this.createBullet.bind(this));
+	  },
 
-	  _controls2.default.on('mousedown', this.createBullet.bind(this));
-	};
+	  addPlayers: function addPlayers(arr) {
 
-	Scene.addPlayers = function addPlayers(arr) {
+	    arr.forEach(function (obj) {
 
-	  arr.forEach(function (obj) {
+	      if (obj.id === _user2.default.id) return;
 
-	    if (obj.id === _user2.default.id) return;
+	      var newPlayer = Object.assign(Object.create(_player2.default), obj);
+
+	      newPlayer.create();
+
+	      newPlayer.player.x = newPlayer.position.x;
+	      newPlayer.player.y = newPlayer.position.y;
+
+	      _stage2.default.addChild(newPlayer.player);
+	    });
+	  },
+
+	  addPlayer: function addPlayer(obj) {
 
 	    var newPlayer = Object.assign(Object.create(_player2.default), obj);
 
 	    newPlayer.create();
 
-	    newPlayer.player.x = newPlayer.position.x;
-	    newPlayer.player.y = newPlayer.position.y;
+	    newPlayer.player.x = _renderer2.default.width / 2;
+	    newPlayer.player.y = _renderer2.default.height / 2;
 
 	    _stage2.default.addChild(newPlayer.player);
-	  });
-	};
+	  },
 
-	Scene.addPlayer = function addPlayer(obj) {
+	  emitPosition: function emitPosition() {
 
-	  console.log('newPlayer');
+	    var pos = _player2.default.getPosition(this.player);
 
-	  var newPlayer = Object.assign(Object.create(_player2.default), obj);
+	    this.socket.emit('updatePosition', _user2.default.id, pos);
+	  },
 
-	  newPlayer.create();
+	  updatePosition: function updatePosition(id, position) {
 
-	  newPlayer.player.x = _renderer2.default.width / 2;
-	  newPlayer.player.y = _renderer2.default.height / 2;
+	    console.log(id);
 
-	  _stage2.default.addChild(newPlayer.player);
-	};
+	    var player = _stage2.default.getChildById(id);
 
-	Scene.emitPosition = function emitPosition() {
+	    player.x = position.x;
+	    player.y = position.y;
+	  },
 
-	  var pos = _player2.default.getPosition(this.player);
+	  emitRotation: function emitRotation() {
 
-	  this.socket.emit('updatePosition', _user2.default.id, pos);
-	};
+	    var rotation = _controls2.default.getRotation(this.player.x, this.player.y);
 
-	Scene.updatePosition = function updatePosition(id, position) {
+	    this.socket.emit('updateRotation', _user2.default.id, rotation);
+	  },
 
-	  var player = _stage2.default.getChildById(id);
+	  updateRotation: function updateRotation(id, rotation) {
 
-	  player.x = position.x;
-	  player.y = position.y;
-	};
+	    var player = _stage2.default.getChildById(id);
 
-	Scene.emitRotation = function emitRotation() {
+	    player.children.forEach(function (child) {
 
-	  var rotation = _controls2.default.getRotation(this.player.x, this.player.y);
+	      if (child.type === 'cannon') {
 
-	  this.socket.emit('updateRotation', _user2.default.id, rotation);
-	};
+	        child.rotation = rotation;
+	      }
+	    });
+	  },
 
-	Scene.updateRotation = function updateRotation(id, rotation) {
+	  playerCollision: function playerCollision(object) {
 
-	  var player = _stage2.default.getChildById(id);
+	    this.socket.emit('decreaseHealth', _user2.default.id);
 
-	  player.children.forEach(function (child) {
+	    this.socket.emit('increaseHealth', object.user);
 
-	    if (child.type === 'cannon') {
+	    this.socket.emit('removeBullet', object.id);
+	  },
 
-	      child.rotation = rotation;
+	  createBullet: function createBullet() {
+
+	    var params = _controls2.default.fireBullet(this.player);
+
+	    this.socket.emit('createBullet', params);
+	  },
+
+	  addBullets: function addBullets(obj) {
+
+	    var newBullet = Object.assign(Object.create(_bullet2.default), obj);
+
+	    newBullet.create();
+
+	    _stage2.default.addChild(newBullet.bullet);
+	  },
+
+	  wallCollision: function wallCollision(id) {
+
+	    this.socket.emit('removeBullet', id);
+	  },
+
+	  updateHealth: function updateHealth() {
+
+	    _stage2.default.children.forEach(function (object) {
+
+	      if (object.type === 'player') {
+
+	        object.children.forEach(function (child) {
+
+	          if (child.type === 'health') {
+
+	            child.text = child.health;
+
+	            child.x = -(child.width / 2);
+	            child.y = -(child.height / 2);
+	          }
+	        });
+	      }
+	    });
+	  },
+
+	  removeDeadPlayers: function removeDeadPlayers() {
+
+	    if (_user2.default.health <= 0) {
+
+	      this.socket.emit('removePlayer', _user2.default.id);
 	    }
-	  });
-	};
+	  },
 
-	Scene.playerCollision = function playerCollision(object) {
+	  update: function update() {
 
-	  this.socket.emit('decreaseHealth', _user2.default.id);
+	    this.player = _stage2.default.getChildById(_user2.default.id);
 
-	  this.socket.emit('increaseHealth', object.user);
+	    if (!this.player) return;
 
-	  this.socket.emit('removeBullet', object.id);
-	};
+	    _collisions2.default.run(this.player);
 
-	Scene.createBullet = function createBullet() {
+	    this.emitPosition();
+	    this.emitRotation();
 
-	  var params = _controls2.default.fireBullet(this.player);
+	    _bullet2.default.update();
 
-	  this.socket.emit('createBullet', params);
-	};
+	    // this.removeDeadPlayers();
 
-	Scene.addBullets = function addBullets(obj) {
+	    // this.updateHealth();
+	  },
 
-	  var newBullet = Object.assign(Object.create(_bullet2.default), obj);
+	  animate: function animate() {
 
-	  newBullet.create();
+	    requestAnimationFrame(this.animate.bind(this));
 
-	  _stage2.default.addChild(newBullet.bullet);
-	};
+	    _stats2.default.begin();
 
-	Scene.wallCollision = function wallCollision(id) {
+	    _renderer2.default.render(_stage2.default);
 
-	  this.socket.emit('removeBullet', id);
-	};
+	    this.update();
 
-	Scene.updateHealth = function updateHealth() {
-
-	  _stage2.default.children.forEach(function (object) {
-
-	    if (object.type === 'player') {
-
-	      object.children.forEach(function (child) {
-
-	        if (child.type === 'health') {
-
-	          child.text = child.health;
-
-	          child.x = -(child.width / 2);
-	          child.y = -(child.height / 2);
-	        }
-	      });
-	    }
-	  });
-	};
-
-	Scene.removeDeadPlayers = function removeDeadPlayers() {
-
-	  if (_user2.default.health <= 0) {
-
-	    this.socket.emit('removePlayer', _user2.default.id);
+	    _stats2.default.end();
 	  }
-	};
 
-	Scene.update = function update() {
-
-	  this.player = _stage2.default.getChildById(_user2.default.id);
-
-	  if (!this.player) return;
-
-	  _collisions2.default.run(this.player);
-
-	  this.emitPosition();
-	  this.emitRotation();
-
-	  _bullet2.default.update();
-
-	  // this.removeDeadPlayers();
-
-	  // this.updateHealth();
-	};
-
-	Scene.animate = function animate() {
-
-	  requestAnimationFrame(this.animate.bind(this));
-
-	  _stats2.default.begin();
-
-	  _renderer2.default.render(_stage2.default);
-
-	  this.update();
-
-	  _stats2.default.end();
 	};
 
 	exports.default = Scene;
@@ -458,41 +454,41 @@
 	});
 	var STATS = {
 
-	  stats: new Stats()
+	  stats: new Stats(),
 
-	};
+	  init: function init(el, mode, top, left) {
 
-	STATS.init = function init(el, mode, top, left) {
+	    this.setMode(0 || mode);
 
-	  this.setMode(0 || mode);
+	    this.setPosition(0 || top, 0 || left);
 
-	  this.setPosition(0 || top, 0 || left);
+	    var $el = el || $(document);
 
-	  var $el = el || $(document);
+	    $el.append(this.stats.domElement);
+	  },
 
-	  $el.append(this.stats.domElement);
-	};
+	  setMode: function setMode(mode) {
 
-	STATS.setMode = function setMode(mode) {
+	    this.stats.setMode(mode);
+	  },
 
-	  this.stats.setMode(mode);
-	};
+	  setPosition: function setPosition(top, left) {
 
-	STATS.setPosition = function setPosition(top, left) {
+	    this.stats.domElement.style.position = 'absolute';
+	    this.stats.domElement.style.left = left + 'px';
+	    this.stats.domElement.style.top = top + 'px';
+	  },
 
-	  this.stats.domElement.style.position = 'absolute';
-	  this.stats.domElement.style.left = left + 'px';
-	  this.stats.domElement.style.top = top + 'px';
-	};
+	  begin: function begin() {
 
-	STATS.begin = function begin() {
+	    this.stats.begin();
+	  },
 
-	  this.stats.begin();
-	};
+	  end: function end() {
 
-	STATS.end = function end() {
+	    this.stats.end();
+	  }
 
-	  this.stats.end();
 	};
 
 	exports.default = STATS;
@@ -562,92 +558,92 @@
 	  left: false,
 	  right: false,
 	  x: 0,
-	  y: 0
+	  y: 0,
 
-	};
+	  init: function init(el) {
 
-	Controls.init = function init(el) {
+	    Happens(this);
 
-	  Happens(this);
+	    this.$el = el;
 
-	  this.$el = el;
+	    this.bind();
+	  },
 
-	  this.bind();
-	};
+	  bind: function bind() {
 
-	Controls.bind = function bind() {
+	    $(document).on('keydown keyup', this.getKeyEvents.bind(this));
+	    $(document).on('mousemove', this.mousemove.bind(this));
+	    $(document).on('mousedown', this.mousedown.bind(this));
+	  },
 
-	  $(document).on('keydown keyup', this.getKeyEvents.bind(this));
-	  $(document).on('mousemove', this.mousemove.bind(this));
-	  $(document).on('mousedown', this.mousedown.bind(this));
-	};
+	  getKeyEvents: function getKeyEvents(event) {
 
-	Controls.getKeyEvents = function getKeyEvents(event) {
+	    event.preventDefault();
 
-	  event.preventDefault();
+	    if (event.type === 'keydown') {
 
-	  if (event.type === 'keydown') {
+	      if (event.which === 87) this.up = true;
+	      if (event.which === 83) this.down = true;
+	      if (event.which === 65) this.left = true;
+	      if (event.which === 68) this.right = true;
+	    } else {
 
-	    if (event.which === 87) this.up = true;
-	    if (event.which === 83) this.down = true;
-	    if (event.which === 65) this.left = true;
-	    if (event.which === 68) this.right = true;
-	  } else {
+	      if (event.which === 87) this.up = false;
+	      if (event.which === 83) this.down = false;
+	      if (event.which === 65) this.left = false;
+	      if (event.which === 68) this.right = false;
+	    }
+	  },
 
-	    if (event.which === 87) this.up = false;
-	    if (event.which === 83) this.down = false;
-	    if (event.which === 65) this.left = false;
-	    if (event.which === 68) this.right = false;
+	  mousemove: function mousemove(event) {
+
+	    this.x = event.pageX;
+	    this.y = event.pageY;
+	  },
+
+	  mousedown: function mousedown() {
+
+	    this.emit('mousedown');
+	  },
+
+	  getRotation: function getRotation(px, py) {
+
+	    var pageX = this.x - this.$el.offset().left;
+	    var pageY = this.y - this.$el.offset().top;
+
+	    var x = pageX - px;
+	    var y = pageY - py;
+
+	    var angle = Math.atan2(x, -y) * (180 / Math.PI);
+	    var rotation = angle * Math.PI / 180;
+
+	    return rotation;
+	  },
+
+	  fireBullet: function fire(player) {
+
+	    var px = player.x;
+	    var py = player.y;
+
+	    var pageX = this.x - this.$el.offset().left;
+	    var pageY = this.y - this.$el.offset().top;
+
+	    var angle = Math.atan2(pageX - px, -(pageY - py)) * (180 / Math.PI);
+	    var radians = angle * Math.PI / 180;
+	    var speed = 1000;
+
+	    var params = {
+	      user: _user2.default.id,
+	      color: _user2.default.color,
+	      x: px,
+	      y: py,
+	      vx: Math.cos(radians) * speed / 60,
+	      vy: Math.sin(radians) * speed / 60
+	    };
+
+	    return params;
 	  }
-	};
 
-	Controls.mousemove = function mousemove(event) {
-
-	  this.x = event.pageX;
-	  this.y = event.pageY;
-	};
-
-	Controls.mousedown = function mousedown() {
-
-	  this.emit('mousedown');
-	};
-
-	Controls.getRotation = function getRotation(px, py) {
-
-	  var pageX = this.x - this.$el.offset().left;
-	  var pageY = this.y - this.$el.offset().top;
-
-	  var x = pageX - px;
-	  var y = pageY - py;
-
-	  var angle = Math.atan2(x, -y) * (180 / Math.PI);
-	  var rotation = angle * Math.PI / 180;
-
-	  return rotation;
-	};
-
-	Controls.fireBullet = function fire(player) {
-
-	  var px = player.x;
-	  var py = player.y;
-
-	  var pageX = this.x - this.$el.offset().left;
-	  var pageY = this.y - this.$el.offset().top;
-
-	  var angle = Math.atan2(pageX - px, -(pageY - py)) * (180 / Math.PI);
-	  var radians = angle * Math.PI / 180;
-	  var speed = 1000;
-
-	  var params = {
-	    user: _user2.default.id,
-	    color: _user2.default.color,
-	    x: px,
-	    y: py,
-	    vx: Math.cos(radians) * speed / 60,
-	    vy: Math.sin(radians) * speed / 60
-	  };
-
-	  return params;
 	};
 
 	exports.default = Controls;
@@ -676,104 +672,106 @@
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	var Player = {};
+	var Player = {
 
-	Player.create = function create() {
+	  create: function create() {
 
-	  this.createBody();
-	  this.createCannon();
-	  this.createName();
-	  this.createHealth();
-	  this.createPlayer();
-	};
+	    this.createBody();
+	    this.createCannon();
+	    this.createName();
+	    this.createHealth();
+	    this.createPlayer();
+	  },
 
-	Player.createBody = function createBody() {
+	  createBody: function createBody() {
 
-	  this.body = new PIXI.Graphics();
+	    this.body = new PIXI.Graphics();
 
-	  this.body.beginFill('0x' + this.color, 1);
-	  this.body.drawCircle(0, 0, 20);
-	};
+	    this.body.beginFill('0x' + this.color, 1);
+	    this.body.drawCircle(0, 0, 20);
+	  },
 
-	Player.createCannon = function createCannon() {
+	  createCannon: function createCannon() {
 
-	  this.cannon = new PIXI.Graphics();
+	    this.cannon = new PIXI.Graphics();
 
-	  this.cannon.beginFill('0x' + this.color, 1);
-	  this.cannon.drawRect(-2, 5, 6, -30);
+	    this.cannon.beginFill('0x' + this.color, 1);
+	    this.cannon.drawRect(-2, 5, 6, -30);
 
-	  this.cannon.type = 'cannon';
-	};
+	    this.cannon.type = 'cannon';
+	  },
 
-	Player.createName = function createName() {
+	  createName: function createName() {
 
-	  this.name = new PIXI.Text(this.username, {
-	    font: '14px Avenir Next Condensed',
-	    fill: 'white'
-	  });
+	    this.name = new PIXI.Text(this.username, {
+	      font: '14px Avenir Next Condensed',
+	      fill: 'white'
+	    });
 
-	  this.name.x = -(this.name.width / 2);
-	  this.name.y = -45;
-	};
+	    this.name.x = -(this.name.width / 2);
+	    this.name.y = -45;
+	  },
 
-	Player.createHealth = function createHealth() {
+	  createHealth: function createHealth() {
 
-	  this.health = new PIXI.Text(this.health || 100, {
-	    font: '14px Avenir Next Condensed',
-	    fill: 'black'
-	  });
+	    this.health = new PIXI.Text(this.health || 100, {
+	      font: '14px Avenir Next Condensed',
+	      fill: 'black'
+	    });
 
-	  this.health.x = -(this.health.width / 2);
-	  this.health.y = -(this.health.height / 2);
+	    this.health.x = -(this.health.width / 2);
+	    this.health.y = -(this.health.height / 2);
 
-	  this.health.type = 'health';
-	};
+	    this.health.type = 'health';
+	  },
 
-	Player.createPlayer = function createPlayer() {
+	  createPlayer: function createPlayer() {
 
-	  this.player = new PIXI.Container();
+	    this.player = new PIXI.Container();
 
-	  this.player.id = this.id;
+	    this.player.id = this.id;
 
-	  this.player.type = 'player';
+	    this.player.type = 'player';
 
-	  this.player.addChild(this.body);
-	  this.player.addChild(this.cannon);
-	  this.player.addChild(this.name);
-	  this.player.addChild(this.health);
-	};
+	    this.player.addChild(this.body);
+	    this.player.addChild(this.cannon);
+	    this.player.addChild(this.name);
+	    this.player.addChild(this.health);
+	  },
 
-	Player.getPosition = function getPosition(player) {
+	  getPosition: function getPosition(player) {
 
-	  var speed = 7;
+	    var speed = 7;
 
-	  var x = player.x;
-	  var y = player.y;
+	    var x = player.x;
+	    var y = player.y;
 
-	  if (_controls2.default.up) y -= speed;
-	  if (_controls2.default.down) y += speed;
-	  if (_controls2.default.left) x -= speed;
-	  if (_controls2.default.right) x += speed;
+	    if (_controls2.default.up) y -= speed;
+	    if (_controls2.default.down) y += speed;
+	    if (_controls2.default.left) x -= speed;
+	    if (_controls2.default.right) x += speed;
 
-	  if (x < 20) x = 20;
-	  if (y < 20) y = 20;
+	    if (x < 20) x = 20;
+	    if (y < 20) y = 20;
 
-	  if (x > _renderer2.default.width - 20) x = _renderer2.default.width - 20;
-	  if (y > _renderer2.default.height - 20) y = _renderer2.default.height - 20;
+	    if (x > _renderer2.default.width - 20) x = _renderer2.default.width - 20;
+	    if (y > _renderer2.default.height - 20) y = _renderer2.default.height - 20;
 
-	  return { x: x, y: y };
-	};
+	    return { x: x, y: y };
+	  },
 
-	Player.remove = function remove(id) {
+	  remove: function remove(id) {
 
-	  _stage2.default.children.forEach(function (child) {
+	    _stage2.default.children.forEach(function (child) {
 
-	    if (child.id === id && child.type === 'player') {
+	      if (child.id === id && child.type === 'player') {
 
-	      child.removeChildren();
-	      _stage2.default.removeChild(child);
-	    }
-	  });
+	        child.removeChildren();
+	        _stage2.default.removeChild(child);
+	      }
+	    });
+	  }
+
 	};
 
 	exports.default = Player;
@@ -794,64 +792,66 @@
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	var Bullet = {};
+	var Bullet = {
 
-	Bullet.create = function create() {
+	  create: function create() {
 
-	  this.createBody();
-	  this.createBullet();
-	};
+	    this.createBody();
+	    this.createBullet();
+	  },
 
-	Bullet.createBody = function createBody() {
+	  createBody: function createBody() {
 
-	  this.body = new PIXI.Graphics();
+	    this.body = new PIXI.Graphics();
 
-	  this.body.beginFill('0x' + this.color, 1);
-	  this.body.drawCircle(0, 0, 2);
-	};
+	    this.body.beginFill('0x' + this.color, 1);
+	    this.body.drawCircle(0, 0, 2);
+	  },
 
-	Bullet.createBullet = function createBullet() {
+	  createBullet: function createBullet() {
 
-	  this.bullet = new PIXI.Container();
+	    this.bullet = new PIXI.Container();
 
-	  this.bullet._id = this._id;
-	  this.bullet.user = this.user;
+	    this.bullet._id = this._id;
+	    this.bullet.user = this.user;
 
-	  this.bullet.x = this.position.x;
-	  this.bullet.y = this.position.y;
+	    this.bullet.x = this.position.x;
+	    this.bullet.y = this.position.y;
 
-	  this.bullet.type = 'bullet';
+	    this.bullet.type = 'bullet';
 
-	  this.bullet.direction = {
-	    x: this.direction.x,
-	    y: this.direction.y
-	  };
+	    this.bullet.direction = {
+	      x: this.direction.x,
+	      y: this.direction.y
+	    };
 
-	  this.bullet.addChild(this.body);
-	};
+	    this.bullet.addChild(this.body);
+	  },
 
-	Bullet.remove = function remove(id) {
+	  remove: function remove(id) {
 
-	  _stage2.default.children.forEach(function (child) {
+	    _stage2.default.children.forEach(function (child) {
 
-	    if (child._id === id && child.type === 'bullet') {
+	      if (child._id === id && child.type === 'bullet') {
 
-	      child.removeChildren();
-	      _stage2.default.removeChild(child);
-	    }
-	  });
-	};
+	        child.removeChildren();
+	        _stage2.default.removeChild(child);
+	      }
+	    });
+	  },
 
-	Bullet.update = function update() {
+	  update: function update() {
 
-	  _stage2.default.children.forEach(function (object) {
+	    _stage2.default.children.forEach(function (object) {
 
-	    if (object.type === 'bullet') {
+	      if (object.type === 'bullet') {
 
-	      object.x = object.x + object.direction.y;
-	      object.y = object.y - object.direction.x;
-	    }
-	  });
+	        object.x = object.x + object.direction.y;
+	        object.y = object.y - object.direction.x;
+	      }
+	    });
+	  }
+
 	};
 
 	exports.default = Bullet;
@@ -880,67 +880,69 @@
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	var Collisions = {};
+	var Collisions = {
 
-	Collisions.init = function init() {
+	  init: function init() {
 
-	  Happens(this);
-	};
+	    Happens(this);
+	  },
 
-	Collisions.run = function run(player) {
-	  var _this = this;
+	  run: function run(player) {
+	    var _this = this;
 
-	  _stage2.default.children.forEach(function (object) {
+	    _stage2.default.children.forEach(function (object) {
 
-	    if (object.type === 'bullet') {
+	      if (object.type === 'bullet') {
 
-	      var params = {
-	        object: object,
-	        px: player.x,
-	        py: player.y,
-	        bx: object.x,
-	        by: object.y
-	      };
+	        var params = {
+	          object: object,
+	          px: player.x,
+	          py: player.y,
+	          bx: object.x,
+	          by: object.y
+	        };
 
-	      if (object.user !== _user2.default.id) {
+	        if (object.user !== _user2.default.id) {
 
-	        _this.checkPlayerCollision(params);
-	      } else {
+	          _this.checkPlayerCollision(params);
+	        } else {
 
-	        _this.checkWallCollision(params);
+	          _this.checkWallCollision(params);
+	        }
 	      }
+	    });
+	  },
+
+	  checkPlayerCollision: function checkPlayerCollision(params) {
+
+	    if (params.bx > params.px - 20 && params.bx < params.px + 20 && params.by > params.py - 20 && params.by < params.py + 20) {
+
+	      this.playerCollision(params.object);
 	    }
-	  });
-	};
+	  },
 
-	Collisions.checkPlayerCollision = function checkPlayerCollision(params) {
+	  checkWallCollision: function checkWallCollision(params) {
 
-	  if (params.bx > params.px - 20 && params.bx < params.px + 20 && params.by > params.py - 20 && params.by < params.py + 20) {
+	    if (params.bx > _renderer2.default.width || params.by > _renderer2.default.height || params.bx < 0 || params.by < 0) {
 
-	    this.playerCollision(params.object);
+	      this.wallCollision(params.object);
+	    }
+	  },
+
+	  playerCollision: function playerCollision(object) {
+
+	    console.log('--- PLAYER COLLISION ---');
+
+	    this.emit('player:hit', object);
+	  },
+
+	  wallCollision: function wallCollision(object) {
+
+	    console.log('--- WALL COLLISION ---');
+
+	    this.emit('wall:hit', object._id);
 	  }
-	};
 
-	Collisions.checkWallCollision = function checkWallCollision(params) {
-
-	  if (params.bx > _renderer2.default.width || params.by > _renderer2.default.height || params.bx < 0 || params.by < 0) {
-
-	    this.wallCollision(params.object);
-	  }
-	};
-
-	Collisions.playerCollision = function playerCollision(object) {
-
-	  console.log('--- PLAYER COLLISION ---');
-
-	  this.emit('player:hit', object);
-	};
-
-	Collisions.wallCollision = function wallCollision(object) {
-
-	  console.log('--- WALL COLLISION ---');
-
-	  this.emit('wall:hit', object._id);
 	};
 
 	exports.default = Collisions;

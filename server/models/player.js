@@ -15,9 +15,9 @@ var playerSchema = new Mongoose.Schema({
     x: { type: Number, required: true },
     y: { type: Number, required: true },
   },
-  rotation : { type: Number, required: true },
-  color    : { type: String, required: true },
-  health   : { type: Number, required: true },
+  rotation: { type: Number, required: true },
+  color: { type: String, required: true },
+  health: { type: Number, required: true },
 });
 
 var Player = Mongoose.model('Player', playerSchema);

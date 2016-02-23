@@ -9,229 +9,230 @@ import Collisions from 'app/components/collisions';
 
 const Scene = {
 
-  $el: $('#scene'),
+  $el: null,
   socket: null,
 
-};
+  init: function init(socket) {
 
-Scene.init = function init(socket) {
+    this.$el = $('#scene');
+    this.socket = socket;
 
-  this.socket = socket;
+    this.$el.append(Renderer.view);
 
-  this.$el.append(Renderer.view);
+    Collisions.init();
 
-  Collisions.init();
+  },
 
-};
+  start: function start() {
 
-Scene.start = function start() {
+    this.socket.emit('sceneReady');
 
-  this.socket.emit('sceneReady');
+    Controls.init(this.$el);
 
-  Controls.init(this.$el);
+    Stats.init(this.$el, 0, 0, 0);
 
-  Stats.init(this.$el, 0, 0, 0);
+    this.animate();
 
-  this.animate();
+    this.bind();
 
-  this.bind();
+  },
 
-};
+  bind: function bind() {
 
-Scene.bind = function bind() {
+    this.socket.on('addPlayers', this.addPlayers.bind(this));
 
-  this.socket.on('addPlayers', this.addPlayers.bind(this));
+    this.socket.on('playerCreated', this.addPlayer.bind(this));
+    this.socket.on('playerDestroyed', id => Player.remove(id));
 
-  this.socket.on('playerCreated', this.addPlayer.bind(this));
-  this.socket.on('playerDestroyed', id => Player.remove(id));
+    this.socket.on('positionUpdated', this.updatePosition.bind(this));
+    this.socket.on('rotationUpdated', this.updateRotation.bind(this));
 
-  this.socket.on('positionUpdated', this.updatePosition.bind(this));
-  this.socket.on('rotationUpdated', this.updateRotation.bind(this));
+    this.socket.on('bulletCreated', this.addBullets.bind(this));
+    this.socket.on('bulletDestroyed', id => Bullet.remove(id));
 
-  this.socket.on('bulletCreated', this.addBullets.bind(this));
-  this.socket.on('bulletDestroyed', id => Bullet.remove(id));
+    Collisions.on('player:hit', this.playerCollision.bind(this));
+    Collisions.on('wall:hit', this.wallCollision.bind(this));
 
-  Collisions.on('player:hit', this.playerCollision.bind(this));
-  Collisions.on('wall:hit', this.wallCollision.bind(this));
+    Controls.on('mousedown', this.createBullet.bind(this));
 
-  Controls.on('mousedown', this.createBullet.bind(this));
+  },
 
-};
+  addPlayers: function addPlayers(arr) {
 
-Scene.addPlayers = function addPlayers(arr) {
+    arr.forEach(obj => {
 
-  arr.forEach(obj => {
+      if (obj.id === User.id) return;
 
-    if (obj.id === User.id) return;
+      const newPlayer = Object.assign(Object.create(Player), obj);
+
+      newPlayer.create();
+
+      newPlayer.player.x = newPlayer.position.x;
+      newPlayer.player.y = newPlayer.position.y;
+
+      Stage.addChild(newPlayer.player);
+
+    });
+
+  },
+
+  addPlayer: function addPlayer(obj) {
 
     const newPlayer = Object.assign(Object.create(Player), obj);
 
     newPlayer.create();
 
-    newPlayer.player.x = newPlayer.position.x;
-    newPlayer.player.y = newPlayer.position.y;
+    newPlayer.player.x = Renderer.width / 2;
+    newPlayer.player.y = Renderer.height / 2;
 
     Stage.addChild(newPlayer.player);
 
-  });
+  },
 
-};
+  emitPosition: function emitPosition() {
 
-Scene.addPlayer = function addPlayer(obj) {
+    const pos = Player.getPosition(this.player);
 
-  console.log('newPlayer');
+    this.socket.emit('updatePosition', User.id, pos);
 
-  const newPlayer = Object.assign(Object.create(Player), obj);
+  },
 
-  newPlayer.create();
+  updatePosition: function updatePosition(id, position) {
 
-  newPlayer.player.x = Renderer.width / 2;
-  newPlayer.player.y = Renderer.height / 2;
+    console.log(id);
 
-  Stage.addChild(newPlayer.player);
+    const player = Stage.getChildById(id);
 
-};
+    player.x = position.x;
+    player.y = position.y;
 
-Scene.emitPosition = function emitPosition() {
+  },
 
-  const pos = Player.getPosition(this.player);
+  emitRotation: function emitRotation() {
 
-  this.socket.emit('updatePosition', User.id, pos);
+    const rotation = Controls.getRotation(this.player.x, this.player.y);
 
-};
+    this.socket.emit('updateRotation', User.id, rotation);
 
-Scene.updatePosition = function updatePosition(id, position) {
+  },
 
-  const player = Stage.getChildById(id);
+  updateRotation: function updateRotation(id, rotation) {
 
-  player.x = position.x;
-  player.y = position.y;
+    const player = Stage.getChildById(id);
 
-};
+    player.children.forEach(child => {
 
-Scene.emitRotation = function emitRotation() {
+      if (child.type === 'cannon') {
 
-  const rotation = Controls.getRotation(this.player.x, this.player.y);
+        child.rotation = rotation;
 
-  this.socket.emit('updateRotation', User.id, rotation);
+      }
 
-};
+    });
 
-Scene.updateRotation = function updateRotation(id, rotation) {
+  },
 
-  const player = Stage.getChildById(id);
+  playerCollision: function playerCollision(object) {
 
-  player.children.forEach(child => {
+    this.socket.emit('decreaseHealth', User.id);
 
-    if (child.type === 'cannon') {
+    this.socket.emit('increaseHealth', object.user);
 
-      child.rotation = rotation;
+    this.socket.emit('removeBullet', object.id);
 
-    }
+  },
 
-  });
+  createBullet: function createBullet() {
 
-};
+    const params = Controls.fireBullet(this.player);
 
-Scene.playerCollision = function playerCollision(object) {
+    this.socket.emit('createBullet', params);
 
-  this.socket.emit('decreaseHealth', User.id);
+  },
 
-  this.socket.emit('increaseHealth', object.user);
+  addBullets: function addBullets(obj) {
 
-  this.socket.emit('removeBullet', object.id);
+    const newBullet = Object.assign(Object.create(Bullet), obj);
 
-};
+    newBullet.create();
 
-Scene.createBullet = function createBullet() {
+    Stage.addChild(newBullet.bullet);
 
-  const params = Controls.fireBullet(this.player);
+  },
 
-  this.socket.emit('createBullet', params);
+  wallCollision: function wallCollision(id) {
 
-};
+    this.socket.emit('removeBullet', id);
 
-Scene.addBullets = function addBullets(obj) {
+  },
 
-  const newBullet = Object.assign(Object.create(Bullet), obj);
+  updateHealth: function updateHealth() {
 
-  newBullet.create();
+    Stage.children.forEach(object => {
 
-  Stage.addChild(newBullet.bullet);
+      if (object.type === 'player') {
 
-};
+        object.children.forEach(child => {
 
-Scene.wallCollision = function wallCollision(id) {
+          if (child.type === 'health') {
 
-  this.socket.emit('removeBullet', id);
+            child.text = child.health;
 
-};
+            child.x = -(child.width / 2);
+            child.y = -(child.height / 2);
 
-Scene.updateHealth = function updateHealth() {
+          }
 
-  Stage.children.forEach(object => {
+        });
 
-    if (object.type === 'player') {
+      }
 
-      object.children.forEach(child => {
+    });
 
-        if (child.type === 'health') {
+  },
 
-          child.text = child.health;
+  removeDeadPlayers: function removeDeadPlayers() {
 
-          child.x = -(child.width / 2);
-          child.y = -(child.height / 2);
+    if (User.health <= 0) {
 
-        }
-
-      });
+      this.socket.emit('removePlayer', User.id);
 
     }
 
-  });
+  },
 
-};
+  update: function update() {
 
-Scene.removeDeadPlayers = function removeDeadPlayers() {
+    this.player = Stage.getChildById(User.id);
 
-  if (User.health <= 0) {
+    if (!this.player) return;
 
-    this.socket.emit('removePlayer', User.id);
+    Collisions.run(this.player);
 
-  }
+    this.emitPosition();
+    this.emitRotation();
 
-};
+    Bullet.update();
 
-Scene.update = function update() {
+    // this.removeDeadPlayers();
 
-  this.player = Stage.getChildById(User.id);
+    // this.updateHealth();
 
-  if (!this.player) return;
+  },
 
-  Collisions.run(this.player);
+  animate: function animate() {
 
-  this.emitPosition();
-  this.emitRotation();
+    requestAnimationFrame(this.animate.bind(this));
 
-  Bullet.update();
+    Stats.begin();
 
-  // this.removeDeadPlayers();
+    Renderer.render(Stage);
 
-  // this.updateHealth();
+    this.update();
 
-};
+    Stats.end();
 
-Scene.animate = function animate() {
-
-  requestAnimationFrame(this.animate.bind(this));
-
-  Stats.begin();
-
-  Renderer.render(Stage);
-
-  this.update();
-
-  Stats.end();
+  },
 
 };
 

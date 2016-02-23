@@ -1,6 +1,3 @@
-var _      = require('underscore');
-var Player = require('./models/player');
-
 var Router = {
 
   init: function init(app) {

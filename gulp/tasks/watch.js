@@ -13,9 +13,19 @@ gulp.task('watch', function() {
 
   watch(config.paths.templates.watch, function() {
 
-    console.log(chalk.white('------------------------------'));
-    console.log(chalk.white('Template updated, reloading...'));
-    console.log(chalk.white('------------------------------'));
+    console.log(chalk.cyan('------------------------------'));
+    console.log(chalk.cyan('Template updated, reloading...'));
+    console.log(chalk.cyan('------------------------------'));
+
+    livereload.reload();
+
+  });
+
+  watch(config.paths.server.watch, function() {
+
+    console.log(chalk.cyan('------------------------------'));
+    console.log(chalk.cyan('Server updated, reloading...'));
+    console.log(chalk.cyan('------------------------------'));
 
     livereload.reload();
 

@@ -2,43 +2,43 @@ const STATS = {
 
   stats: new Stats(),
 
-};
+  init: function init(el, mode, top, left) {
 
-STATS.init = function init(el, mode, top, left) {
+    this.setMode(0 || mode);
 
-  this.setMode(0 || mode);
+    this.setPosition(0 || top, 0 || left);
 
-  this.setPosition(0 || top, 0 || left);
+    const $el = el || $(document);
 
-  const $el = el || $(document);
+    $el.append(this.stats.domElement);
 
-  $el.append(this.stats.domElement);
+  },
 
-};
+  setMode: function setMode(mode) {
 
-STATS.setMode = function setMode(mode) {
+    this.stats.setMode(mode);
 
-  this.stats.setMode(mode);
+  },
 
-};
+  setPosition: function setPosition(top, left) {
 
-STATS.setPosition = function setPosition(top, left) {
+    this.stats.domElement.style.position = 'absolute';
+    this.stats.domElement.style.left = `${left}px`;
+    this.stats.domElement.style.top = `${top}px`;
 
-  this.stats.domElement.style.position = 'absolute';
-  this.stats.domElement.style.left = `${left}px`;
-  this.stats.domElement.style.top = `${top}px`;
+  },
 
-};
+  begin: function begin() {
 
-STATS.begin = function begin() {
+    this.stats.begin();
 
-  this.stats.begin();
+  },
 
-};
+  end: function end() {
 
-STATS.end = function end() {
+    this.stats.end();
 
-  this.stats.end();
+  },
 
 };
 

@@ -4,15 +4,15 @@ const User = {
   name: null,
   color: null,
 
-};
+  setProps: function setProps(obj) {
 
-User.setProps = function setProps(obj) {
+    Object.keys(obj).forEach(key => {
 
-  Object.keys(obj).forEach(key => {
+      this[key] = obj[key];
 
-    this[key] = obj[key];
+    });
 
-  });
+  },
 
 };
 

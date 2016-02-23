@@ -2,83 +2,85 @@ import User from 'app/components/user';
 import Renderer from 'app/components/renderer';
 import Stage from 'app/components/stage';
 
-const Collisions = {};
+const Collisions = {
 
-Collisions.init = function init() {
+  init: function init() {
 
-  Happens(this);
+    Happens(this);
 
-};
+  },
 
-Collisions.run = function run(player) {
+  run: function run(player) {
 
-  Stage.children.forEach(object => {
+    Stage.children.forEach(object => {
 
-    if (object.type === 'bullet') {
+      if (object.type === 'bullet') {
 
-      const params = {
-        object,
-        px: player.x,
-        py: player.y,
-        bx: object.x,
-        by: object.y,
-      };
+        const params = {
+          object,
+          px: player.x,
+          py: player.y,
+          bx: object.x,
+          by: object.y,
+        };
 
-      if (object.user !== User.id) {
+        if (object.user !== User.id) {
 
-        this.checkPlayerCollision(params);
+          this.checkPlayerCollision(params);
 
-      } else {
+        } else {
 
-        this.checkWallCollision(params);
+          this.checkWallCollision(params);
+
+        }
 
       }
 
+    });
+
+  },
+
+  checkPlayerCollision: function checkPlayerCollision(params) {
+
+    if (params.bx > params.px - 20 &&
+        params.bx < params.px + 20 &&
+        params.by > params.py - 20 &&
+        params.by < params.py + 20) {
+
+      this.playerCollision(params.object);
+
     }
 
-  });
+  },
 
-};
+  checkWallCollision: function checkWallCollision(params) {
 
-Collisions.checkPlayerCollision = function checkPlayerCollision(params) {
+    if (params.bx > Renderer.width ||
+        params.by > Renderer.height ||
+        params.bx < 0 ||
+        params.by < 0) {
 
-  if (params.bx > params.px - 20 &&
-      params.bx < params.px + 20 &&
-      params.by > params.py - 20 &&
-      params.by < params.py + 20) {
+      this.wallCollision(params.object);
 
-    this.playerCollision(params.object);
+    }
 
-  }
+  },
 
-};
+  playerCollision: function playerCollision(object) {
 
-Collisions.checkWallCollision = function checkWallCollision(params) {
+    console.log('--- PLAYER COLLISION ---');
 
-  if (params.bx > Renderer.width ||
-      params.by > Renderer.height ||
-      params.bx < 0 ||
-      params.by < 0) {
+    this.emit('player:hit', object);
 
-    this.wallCollision(params.object);
+  },
 
-  }
+  wallCollision: function wallCollision(object) {
 
-};
+    console.log('--- WALL COLLISION ---');
 
-Collisions.playerCollision = function playerCollision(object) {
+    this.emit('wall:hit', object._id);
 
-  console.log('--- PLAYER COLLISION ---');
-
-  this.emit('player:hit', object);
-
-};
-
-Collisions.wallCollision = function wallCollision(object) {
-
-  console.log('--- WALL COLLISION ---');
-
-  this.emit('wall:hit', object._id);
+  },
 
 };
 

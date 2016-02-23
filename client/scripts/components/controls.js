@@ -10,98 +10,98 @@ const Controls = {
   x: 0,
   y: 0,
 
-};
+  init: function init(el) {
 
-Controls.init = function init(el) {
+    Happens(this);
 
-  Happens(this);
+    this.$el = el;
 
-  this.$el = el;
+    this.bind();
 
-  this.bind();
+  },
 
-};
+  bind: function bind() {
 
-Controls.bind = function bind() {
+    $(document).on('keydown keyup', this.getKeyEvents.bind(this));
+    $(document).on('mousemove', this.mousemove.bind(this));
+    $(document).on('mousedown', this.mousedown.bind(this));
 
-  $(document).on('keydown keyup', this.getKeyEvents.bind(this));
-  $(document).on('mousemove', this.mousemove.bind(this));
-  $(document).on('mousedown', this.mousedown.bind(this));
+  },
 
-};
+  getKeyEvents: function getKeyEvents(event) {
 
-Controls.getKeyEvents = function getKeyEvents(event) {
+    event.preventDefault();
 
-  event.preventDefault();
+    if (event.type === 'keydown') {
 
-  if (event.type === 'keydown') {
+      if (event.which === 87) this.up = true;
+      if (event.which === 83) this.down = true;
+      if (event.which === 65) this.left = true;
+      if (event.which === 68) this.right = true;
 
-    if (event.which === 87) this.up = true;
-    if (event.which === 83) this.down = true;
-    if (event.which === 65) this.left = true;
-    if (event.which === 68) this.right = true;
+    } else {
 
-  } else {
+      if (event.which === 87) this.up = false;
+      if (event.which === 83) this.down = false;
+      if (event.which === 65) this.left = false;
+      if (event.which === 68) this.right = false;
 
-    if (event.which === 87) this.up = false;
-    if (event.which === 83) this.down = false;
-    if (event.which === 65) this.left = false;
-    if (event.which === 68) this.right = false;
+    }
 
-  }
+  },
 
-};
+  mousemove: function mousemove(event) {
 
-Controls.mousemove = function mousemove(event) {
+    this.x = event.pageX;
+    this.y = event.pageY;
 
-  this.x = event.pageX;
-  this.y = event.pageY;
+  },
 
-};
+  mousedown: function mousedown() {
 
-Controls.mousedown = function mousedown() {
+    this.emit('mousedown');
 
-  this.emit('mousedown');
+  },
 
-};
+  getRotation: function getRotation(px, py) {
 
-Controls.getRotation = function getRotation(px, py) {
+    const pageX = this.x - this.$el.offset().left;
+    const pageY = this.y - this.$el.offset().top;
 
-  const pageX = this.x - this.$el.offset().left;
-  const pageY = this.y - this.$el.offset().top;
+    const x = pageX - px;
+    const y = pageY - py;
 
-  const x = pageX - px;
-  const y = pageY - py;
+    const angle = Math.atan2(x, -y) * (180 / Math.PI);
+    const rotation = angle * Math.PI / 180;
 
-  const angle = Math.atan2(x, -y) * (180 / Math.PI);
-  const rotation = angle * Math.PI / 180;
+    return rotation;
 
-  return rotation;
+  },
 
-};
+  fireBullet: function fire(player) {
 
-Controls.fireBullet = function fire(player) {
+    const px = player.x;
+    const py = player.y;
 
-  const px = player.x;
-  const py = player.y;
+    const pageX = this.x - this.$el.offset().left;
+    const pageY = this.y - this.$el.offset().top;
 
-  const pageX = this.x - this.$el.offset().left;
-  const pageY = this.y - this.$el.offset().top;
+    const angle = Math.atan2(pageX - px, - (pageY - py)) * (180 / Math.PI);
+    const radians = angle * Math.PI / 180;
+    const speed = 1000;
 
-  const angle = Math.atan2(pageX - px, - (pageY - py)) * (180 / Math.PI);
-  const radians = angle * Math.PI / 180;
-  const speed = 1000;
+    const params = {
+      user: User.id,
+      color: User.color,
+      x: px,
+      y: py,
+      vx: Math.cos(radians) * speed / 60,
+      vy: Math.sin(radians) * speed / 60,
+    };
 
-  const params = {
-    user: User.id,
-    color: User.color,
-    x: px,
-    y: py,
-    vx: Math.cos(radians) * speed / 60,
-    vy: Math.sin(radians) * speed / 60,
-  };
+    return params;
 
-  return params;
+  },
 
 };
 
