@@ -1,7 +1,7 @@
 var Mongoose = require('mongoose');
 
 var userSchema = new Mongoose.Schema({
-  id: {
+  fbid: {
     type: String,
     unique: true,
     required: true,
