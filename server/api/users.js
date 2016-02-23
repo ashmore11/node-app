@@ -37,25 +37,19 @@ var UserApi = {
 
   update: function update(id, data, res) {
 
-    UserModel.find({ fbid: data.id }, function(err, user) {
-
-      if (err) res.send(err);
-
-      user.fbid = data.fbid;
-      user.name = data.name;
-      user.email = data.email;
-      user.profileImage = data.profileImage;
-
-      // Save the user
-      user.save(function(err) {
+    UserModel.update(
+      { fbid: id },
+      { $set: data },
+      { upsert: true },
+      (err, doc) => {
 
         if (err) res.send(err);
 
         res.json({ message: 'Successfully updated user...' });
 
-      });
+      }
 
-    });
+    );
 
   },
 

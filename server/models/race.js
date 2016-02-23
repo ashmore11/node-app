@@ -2,7 +2,7 @@ var Mongoose = require('mongoose');
 
 var raceSchema = new Mongoose.Schema({
   startTime: {
-    type: Date,
+    type: String,
     required: true,
   },
   competitors: {
