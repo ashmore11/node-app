@@ -10,13 +10,11 @@ app.use(bodyParser.json());
 
 var port = process.env.PORT || 3000;
 
-// ROUTES FOR OUR API
+// Routes for our api
 var router = express.Router();
 
 // middleware to use for all requests
 router.use(function(req, res, next) {
-
-  console.log('Something is happening.');
 
   next(); // make sure we go to the next routes and don't stop here
 
@@ -24,36 +22,33 @@ router.use(function(req, res, next) {
 
 router.get('/', function(req, res) {
 
-  res.json({ message: 'hooray! welcome to our api!' });
+  res.json({ message: 'Welcome to the RealTimeRunning api.' });
 
 });
 
 router.route('/users')
 
-    // create a bear (accessed at POST http://localhost:8080/api/bears)
+  // Create a user
   .post(function(req, res) {
 
     var user = User({
-      name: req.body.name,
       id: req.body.id,
+      name: req.body.name,
       email: req.body.email,
       profileImage: req.body.profileImage,
     });
 
-    console.log('post');
-
     user.save(function(err) {
-
-      console.log('saving');
 
       if (err) res.send(err);
 
-      res.json({ message: 'User created!' });
+      res.json({ message: 'Successfully created user...' });
 
     });
 
   })
 
+  // Find all users
   .get(function(req, res) {
 
     User.find(function(err, users) {
@@ -66,10 +61,65 @@ router.route('/users')
 
   });
 
+router.route('/users/:id')
+
+  // Find a user
+  .get(function(req, res) {
+
+    User.findById(req.params.id, function(err, user) {
+
+      console.log('found user', user)
+
+      if (err) res.send(err);
+
+      res.json(user);
+
+    });
+
+  })
+
+  // Update a user
+  .put(function(req, res) {
+
+    User.findById(req.params.id, function(err, user) {
+
+      if (err) res.send(err);
+
+      user.id = req.body.id;
+      user.name = req.body.name;
+      user.email = req.body.email;
+      user.profileImage = req.body.profileImage;
+
+      // Save the user
+      user.save(function(err) {
+
+        if (err) res.send(err);
+
+        res.json({ message: 'Successfully updated user...' });
+
+      });
+
+    });
+
+  })
+
+  // Delete a user
+  .delete(function(req, res) {
+
+    User.remove({ _id: req.params.bear_id }, function(err) {
+
+      if (err) res.send(err);
+
+      res.json({ message: 'Successfully deleted user...' });
+
+    });
+
+  });
+
 // all of our routes will be prefixed with /api
 app.use('/api', router);
 
-// START THE SERVER
+// Start the server
 app.listen(port);
 
-console.log('Listening on port: ' + port);
+console.log('Listening on http://localhost: ' + port);
