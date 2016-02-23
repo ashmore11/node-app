@@ -1,7 +1,7 @@
 var Chalk  = require('chalk');
 var io     = require('socket.io');
-var Player = require('./models/player');
-var Bullet = require('./models/bullet');
+var Player = require('./models/user');
+var Bullet = require('./models/race');
 
 var Sockets = {
 

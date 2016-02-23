@@ -1,12 +1,24 @@
+var UserApi = require('./api/users');
+
 var Router = {
 
   init: function init(app) {
 
-    app.get('/', (req, res) => {
+    app.get('/api/users', (req, res) => {
 
-      var locals = {};
+      UserApi.get(null, function(err, result) {
 
-      res.render('home', locals);
+        if (err) {
+
+          console.log(err);
+
+        } else {
+
+          console.log(result);
+
+        }
+
+      });
 
     });
 
