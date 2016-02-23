@@ -33,14 +33,18 @@ router.route('/users')
     // create a bear (accessed at POST http://localhost:8080/api/bears)
   .post(function(req, res) {
 
-    var user = new User({
+    var user = User({
       name: req.body.name,
       id: req.body.id,
       email: req.body.email,
       profileImage: req.body.profileImage,
     });
 
+    console.log('post');
+
     user.save(function(err) {
+
+      console.log('saving');
 
       if (err) res.send(err);
 
